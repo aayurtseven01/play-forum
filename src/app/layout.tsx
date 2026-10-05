@@ -3,8 +3,8 @@ import './globals.css';
 import SiteHeader from '@/components/site-header';
 
 export const metadata: Metadata = {
-  title: { default: 'LinguaPro Forum', template: '%s · LinguaPro Forum' },
-  description: 'LinguaPro kapalı test topluluk forumu — Supabase tabanlı'
+  title: { default: 'Play Forum', template: '%s · Play Forum' },
+  description: 'Play kapalı test topluluk forumu — Supabase tabanlı'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <div className="container">
           <footer className="footer">
-            <span>© {new Date().getFullYear()} LinguaPro Forum — Next.js + Supabase</span>
+            <span>© {new Date().getFullYear()} Play Forum — Next.js + Supabase</span>
             <span>Ücretsiz katmanda çalışıyor 🚀</span>
           </footer>
         </div>
