@@ -152,8 +152,8 @@ export async function uploadAvatarAction(formData: FormData): Promise<ActionResu
     return { ok: false, error: 'Önce bir görsel seç.' };
   if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type))
     return { ok: false, error: 'Yalnızca PNG, JPG, WEBP veya GIF yükleyebilirsin.' };
-  if (file.size > 1024 * 1024)
-    return { ok: false, error: 'Görsel 1 MB’den küçük olmalı.' };
+  if (file.size > 4 * 1024 * 1024)
+    return { ok: false, error: 'Görsel 4 MB’den küçük olmalı.' };
 
   const supabase = await createClient();
   if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };

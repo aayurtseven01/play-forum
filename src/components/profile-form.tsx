@@ -37,8 +37,8 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
       setAvatarMsg({ ok: false, error: 'Yalnızca PNG, JPG, WEBP veya GIF yükleyebilirsin.' });
       return;
     }
-    if (f.size > 1024 * 1024) {
-      setAvatarMsg({ ok: false, error: 'Görsel 1 MB’den küçük olmalı.' });
+    if (f.size > 4 * 1024 * 1024) {
+      setAvatarMsg({ ok: false, error: 'Görsel 4 MB’den küçük olmalı.' });
       return;
     }
     setAvatarMsg(null);
@@ -79,7 +79,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
               {avatarPending ? 'Yükleniyor…' : 'Yükle'}
             </button>
           </form>
-          <div className="hint">PNG / JPG / WEBP / GIF · en fazla 1 MB</div>
+          <div className="hint">PNG / JPG / WEBP / GIF · en fazla 4 MB</div>
         </div>
       </div>
 
