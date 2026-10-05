@@ -951,7 +951,11 @@ export async function countPostsByAuthor(authorId: string): Promise<number> {
     .from('posts')
     .select('id', { count: 'exact', head: true })
     .eq('author_id', authorId);
-  return count ?? 0;
+  const { count: tcount } = await supabase
+    .from('topics')
+    .select('id', { count: 'exact', head: true })
+    .eq('author_id', authorId);
+  return (count ?? 0) + (tcount ?? 0);
 }
 
 export async function updateProfile(input: {
