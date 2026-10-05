@@ -33,12 +33,12 @@ export default function LikeButton({
   return (
     <button
       type="button"
-      className={`like-btn ${liked ? 'on' : ''}`}
+      className={`p-action ${liked ? 'on' : ''}`}
       onClick={onClick}
       disabled={pending || disabled}
-      title={disabled ? 'Beğenmek için giriş yapmalısın' : undefined}
+      title={disabled ? 'Beğenmek için giriş yapmalısın' : 'Beğen'}
     >
-      {liked ? '❤️' : '🤍'} {count}
+      {liked ? '♥' : '♡'} {count > 0 ? count : ''}
     </button>
   );
 }

@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import { randomUUID } from 'crypto';
-import type { Category, Post, Profile, Topic } from './types';
+import type { AppNotification, Category, Post, Profile, Topic } from './types';
 
 /**
  * DEMO MODU deposu.
@@ -13,12 +13,20 @@ const FILE = process.env.DEMO_DATA_FILE ?? '/tmp/forum-demo-data.json';
 
 export const DEMO_USER_ID = '00000000-0000-4000-8000-000000000001';
 
-type DemoDB = {
+export type DemoReaction = {
+  id: string;
+  user_id: string;
+  target_type: 'topic' | 'post';
+  target_id: string;
+};
+
+export type DemoDB = {
   profiles: Profile[];
   categories: Category[];
   topics: Topic[];
   posts: Post[];
-  reactions: { id: string; user_id: string; target_type: 'topic' | 'post'; target_id: string }[];
+  reactions: DemoReaction[];
+  notifications: AppNotification[];
 };
 
 const seed = (): DemoDB => {
@@ -79,8 +87,11 @@ const seed = (): DemoDB => {
     content:
       'Bu forum demo modunda çalışıyor. Supabase anahtarlarını .env.local dosyasına girdiğinde gerçek veritabanına geçecek.\n\nKısa kurallar:\n1. Saygılı ol.\n2. Reklam/spam yok.\n3. Doğru kategoriye yaz.',
     views: 12,
+    reply_count: 0,
     is_pinned: true,
     is_locked: false,
+    is_private: false,
+    participants: [],
     created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     updated_at: new Date(Date.now() - 86400000 * 2).toISOString()
   };
@@ -93,8 +104,11 @@ const seed = (): DemoDB => {
     content:
       'Bu örnek bir yardım konusudur. Giriş yaptıktan sonra sağ üstteki "Yeni Konu" butonunu kullanarak kendi konunu açabilirsin.',
     views: 3,
+    reply_count: 1,
     is_pinned: false,
     is_locked: false,
+    is_private: false,
+    participants: [],
     created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
     updated_at: new Date(Date.now() - 3600000 * 5).toISOString()
   };
@@ -109,7 +123,7 @@ const seed = (): DemoDB => {
     updated_at: new Date(Date.now() - 3600000 * 4).toISOString()
   };
 
-  return { profiles: [me], categories, topics: [t1, t2], posts: [p1], reactions: [] };
+  return { profiles: [me], categories, topics: [t1, t2], posts: [p1], reactions: [], notifications: [] };
 };
 
 export async function readDB(): Promise<DemoDB> {
@@ -117,7 +131,15 @@ export async function readDB(): Promise<DemoDB> {
   // (dev modu hot-reload vb.) arasında veri asla ayrışmaz.
   try {
     const raw = await fs.readFile(FILE, 'utf8');
-    return JSON.parse(raw) as DemoDB;
+    const db = JSON.parse(raw) as DemoDB;
+    // eski dosya şemasıyla uyumluluk
+    db.notifications ??= [];
+    db.topics.forEach((t) => {
+      t.is_private ??= false;
+      t.participants ??= [];
+      t.reply_count ??= 0;
+    });
+    return db;
   } catch {
     const fresh = seed();
     await fs.writeFile(FILE, JSON.stringify(fresh, null, 2), 'utf8');

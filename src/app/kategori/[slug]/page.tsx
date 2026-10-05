@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import TopicList from '@/components/topic-list';
-import { getCategoryBySlug, listCategories, listTopics, type TopicSort } from '@/lib/data';
+import { getCategoryBySlug, listTopics, type TopicSort } from '@/lib/data';
 import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
@@ -12,9 +12,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 const SORTS: { id: TopicSort; label: string }[] = [
-  { id: 'yeni', label: 'Yeni' },
+  { id: 'yeni', label: 'Son' },
   { id: 'aktif', label: 'Aktif' },
-  { id: 'populer', label: 'Popüler' }
+  { id: 'populer', label: 'En İyi' }
 ];
 
 export default async function CategoryPage({
@@ -34,30 +34,25 @@ export default async function CategoryPage({
 
   return (
     <>
-      <div className="card card-pad" style={{ marginTop: 18 }}>
-        <div className="cat-name" style={{ fontSize: 20 }}>
-          <span className="cat-dot" style={{ background: cat.color ?? '#6366f1' }} />
-          {cat.name}
+      <div className="card card-pad" style={{ marginTop: 20, display: 'flex', gap: 14, alignItems: 'center' }}>
+        <span className="cat-bar" style={{ background: cat.color ?? '#919191', width: 12, height: 34, borderRadius: 4 }} />
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 700 }}>{cat.name}</div>
+          <div style={{ color: 'var(--muted)', fontSize: 13.5 }}>{cat.description}</div>
         </div>
-        <p style={{ color: 'var(--muted)', margin: '6px 0 0', fontSize: 14 }}>
-          {cat.description}
-        </p>
       </div>
 
-      <div className="section-title">
-        <span>{topics.length} konu</span>
-        <div className="sort-tabs">
-          {SORTS.map((s) => (
-            <Link
-              key={s.id}
-              href={s.id === 'yeni' ? `/kategori/${slug}` : `/kategori/${slug}?sort=${s.id}`}
-              className={s.id === active ? 'active' : ''}
-            >
-              {s.label}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <nav className="nav-pills">
+        {SORTS.map((s) => (
+          <Link
+            key={s.id}
+            href={s.id === 'yeni' ? `/kategori/${slug}` : `/kategori/${slug}?sort=${s.id}`}
+            className={s.id === active ? 'active' : ''}
+          >
+            {s.label}
+          </Link>
+        ))}
+      </nav>
 
       <TopicList topics={topics} />
     </>

@@ -98,6 +98,33 @@ export async function toggleReactionAction(
   return await db.toggleReaction(targetType, targetId);
 }
 
+/* ---------------- Bildirimler & moderasyon & mesaj ---------------- */
+
+export async function markAllReadAction(): Promise<ActionResult> {
+  return await db.markAllNotificationsRead();
+}
+
+export async function setTopicFlagsAction(
+  id: string,
+  flags: { is_pinned?: boolean; is_locked?: boolean }
+): Promise<ActionResult> {
+  return await db.setTopicFlags(id, flags);
+}
+
+export async function createMessageAction(formData: FormData): Promise<ActionResult> {
+  const to = String(formData.get('to') ?? '');
+  const title = String(formData.get('title') ?? '');
+  const content = String(formData.get('content') ?? '');
+  const res = await db.createTopic({
+    title,
+    content,
+    isPrivate: true,
+    participantIds: [to]
+  });
+  if (!res.ok || !res.id) return { ok: false, error: res.error };
+  redirect(`/konu/${res.id}`);
+}
+
 /* ---------------- Profil ---------------- */
 
 export async function updateProfileAction(formData: FormData): Promise<ActionResult> {

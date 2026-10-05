@@ -9,19 +9,20 @@ export default async function CategoriesPage() {
 
   return (
     <>
-      <div className="section-title">
-        <span>Tüm Kategoriler</span>
+      <div className="side-title" style={{ marginTop: 22 }}>
+        Tüm Kategoriler
       </div>
-
-      <div className="cat-grid">
+      <div className="cat-box">
         {categories.map((c) => (
-          <Link key={c.id} href={`/kategori/${c.slug}`} className="cat-card">
-            <div className="cat-name">
-              <span className="cat-dot" style={{ background: c.color ?? '#6366f1' }} />
+          <Link key={c.id} href={`/kategori/${c.slug}`} className="cat-row">
+            <span className="cat-bar" style={{ background: c.color ?? '#919191' }} />
+            <span>
               {c.name}
-            </div>
-            <div className="cat-desc">{c.description ?? '—'}</div>
-            <div className="cat-meta">{c.topic_count ?? 0} konu</div>
+              <span style={{ display: 'block', fontWeight: 400, fontSize: 12.5, color: 'var(--muted)' }}>
+                {c.description ?? ''}
+              </span>
+            </span>
+            <span className="n">{c.topic_count ?? 0} konu</span>
           </Link>
         ))}
       </div>

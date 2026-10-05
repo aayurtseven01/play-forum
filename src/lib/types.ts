@@ -21,19 +21,22 @@ export type Category = {
 
 export type Topic = {
   id: string;
-  category_id: string;
+  category_id: string | null;
   author_id: string;
   title: string;
   content: string;
   views: number;
+  reply_count: number;
   is_pinned: boolean;
   is_locked: boolean;
+  is_private: boolean;
+  participants: string[];
   created_at: string;
   updated_at: string;
   // join ile gelenler
   author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'> | null;
   category?: Pick<Category, 'id' | 'name' | 'slug' | 'color'> | null;
-  reply_count?: number;
+  last_posters?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>[];
   last_activity?: string | null;
 };
 
@@ -46,14 +49,20 @@ export type Post = {
   created_at: string;
   updated_at: string;
   author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'> | null;
+  post_number?: number;
 };
 
-export type Reaction = {
+export type AppNotification = {
   id: string;
   user_id: string;
-  target_type: 'topic' | 'post';
-  target_id: string;
+  actor_id: string | null;
+  type: 'reply' | 'like' | 'message';
+  topic_id: string | null;
+  post_id: string | null;
+  read: boolean;
   created_at: string;
+  actor?: Pick<Profile, 'id' | 'username' | 'display_name'> | null;
+  topic?: Pick<Topic, 'id' | 'title'> | null;
 };
 
 /** Uygulamanın her yerinde kullanılan "giriş yapmış kullanıcı" özeti */
