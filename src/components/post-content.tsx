@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** [quote=yazar]...[/quote] bloklarını Discourse tarzı göster */
+/** [quote=yazar]...[/quote] bloklarını modern alıntı kutusu olarak göster */
 export function renderContent(content: string): ReactNode[] {
   const out: ReactNode[] = [];
   const re = /\[quote=([^\]\n]+)\]([\s\S]*?)\[\/quote\]/g;
@@ -11,10 +11,9 @@ export function renderContent(content: string): ReactNode[] {
   while ((m = re.exec(content))) {
     if (m.index > last) out.push(content.slice(last, m.index));
     out.push(
-      <div className="quote-block" key={`q${key++}`}>
-        <b>{m[1]}</b> yazdı:
-        {'\n'}
-        {m[2].trim()}
+      <div className="quote-box" key={`q${key++}`}>
+        <div className="q-head">❝ {m[1]} yazdı:</div>
+        <div className="q-body">{m[2].trim()}</div>
       </div>
     );
     last = m.index + m[0].length;

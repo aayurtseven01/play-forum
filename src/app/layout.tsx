@@ -15,12 +15,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main className="container" style={{ paddingTop: 8, paddingBottom: 20 }}>
           {children}
         </main>
-        <div className="container">
-          <footer className="footer">
+        <footer>
+          <div className="container f-wrap">
             <span>© {new Date().getFullYear()} Play Forum — Next.js + Supabase</span>
-            <span>Ücretsiz katmanda çalışıyor 🚀</span>
-          </footer>
-        </div>
+            <span>Topluluk için, toplulukla 🚀</span>
+          </div>
+        </footer>
       </body>
     </html>
   );

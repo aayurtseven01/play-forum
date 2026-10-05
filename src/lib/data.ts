@@ -962,7 +962,77 @@ export async function siteStats() {
   const topics = await listTopics({ limit: 1000 });
   const publicTopics = topics.filter((t) => !t.is_private);
   const totalReplies = publicTopics.reduce((sum, t) => sum + (t.reply_count ?? 0), 0);
-  return { topics: publicTopics.length, replies: totalReplies };
+
+  let members = 0;
+  if (isDemoEnv()) {
+    const db = await readDB();
+    members = db.profiles.length;
+  } else {
+    const supabase = await getSupabase();
+    if (supabase) {
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true });
+      members = count ?? 0;
+    }
+  }
+  return { topics: publicTopics.length, replies: totalReplies, members };
+}
+
+export type LatestPost = {
+  id: string;
+  content: string;
+  created_at: string;
+  author: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'> | null;
+  topic_id: string;
+  topic_title: string;
+};
+
+/** Ana sayfa "Son Mesajlar" paneli için en yeni cevaplar (gizli konular hariç) */
+export async function listLatestPosts(limit = 6): Promise<LatestPost[]> {
+  if (isDemoEnv()) {
+    const db = await readDB();
+    return db.posts
+      .slice()
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit)
+      .map((p) => {
+        const t = db.topics.find((x) => x.id === p.topic_id);
+        return {
+          id: p.id,
+          content: p.content,
+          created_at: p.created_at,
+          author: p.author ?? db.profiles.find((x) => x.id === p.author_id) ?? null,
+          topic_id: p.topic_id,
+          topic_title: t?.title ?? ''
+        };
+      });
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('posts')
+    .select(
+      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url ), topic:topics ( id, title, is_private )'
+    )
+    .order('created_at', { ascending: false })
+    .limit(limit * 3);
+  if (error) {
+    logErr('listLatestPosts', error);
+    return [];
+  }
+  return ((data ?? []) as unknown as (LatestPost & { topic?: { is_private?: boolean } })[])
+    .filter((p) => p.topic && !p.topic.is_private)
+    .slice(0, limit)
+    .map((p) => ({
+      id: p.id,
+      content: p.content,
+      created_at: p.created_at,
+      author: p.author,
+      topic_id: p.topic_id,
+      topic_title: (p as { topic?: { title?: string } }).topic?.title ?? ''
+    }));
 }
 
 /* ------------------------------------------------------------------ */
