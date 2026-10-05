@@ -1145,6 +1145,43 @@ export async function markSolution(
   return { ok: true };
 }
 
+/** Ana sayfa alt bandı: çevrimiçi + toplam istatistikler */
+export async function onlineStats() {
+  if (isDemoEnv()) {
+    const db = await readDB();
+    const views = db.topics.reduce((s, t) => s + t.views, 0);
+    return { online: 1, members: db.profiles.length, views };
+  }
+  const supabase = await getSupabase();
+  if (!supabase) return { online: 0, members: 0, views: 0 };
+
+  const [on, mem, vw] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .gt('last_seen', new Date(Date.now() - 15 * 60 * 1000).toISOString()),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('topics').select('views').limit(1000)
+  ]);
+
+  const views = ((vw.data ?? []) as { views: number }[]).reduce((s, t) => s + (t.views ?? 0), 0);
+  return { online: on.count ?? 0, members: mem.count ?? 0, views };
+}
+
+/** Kullanıcının son görülmesini tazele (istemciden 5 dk'da bir) */
+export async function touchPresence(): Promise<{ ok: boolean }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false };
+  if (isDemoEnv()) return { ok: true };
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false };
+  await supabase
+    .from('profiles')
+    .update({ last_seen: new Date().toISOString() })
+    .eq('id', me.id);
+  return { ok: true };
+}
+
 /** Üye başına mesaj sayısı (üye listesi için tek sorgu) */
 export async function memberPostCounts(): Promise<Record<string, number>> {
   if (isDemoEnv()) {

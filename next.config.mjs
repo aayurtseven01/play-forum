@@ -2,7 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   // Sunucu eylemlerinde (avatar yüklemesi) gövde sınırı
-  serverActions: { bodySizeLimit: '4mb' },
+  experimental: {
+    serverActions: { bodySizeLimit: '4mb' }
+  },
   // Canlı önizleme / Vercel alt alanlarından gelen isteklere izin ver
   allowedDevOrigins: ['*.e2b.app', '*.vercel.app', 'localhost'],
   // Supabase Storage'tan yüklenen avatar/resimleri gösterebilmek için

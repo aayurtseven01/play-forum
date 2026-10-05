@@ -8,6 +8,7 @@ import {
   latestMember,
   listLatestPosts,
   listTopics,
+  onlineStats,
   siteStats,
   timeAgo,
   type TopicSort
@@ -23,17 +24,65 @@ const SORTS: { id: TopicSort; label: string }[] = [
   { id: 'populer', label: 'En İyi' }
 ];
 
+const IcTopic = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+  </svg>
+);
+const IcMsg = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+    <path d="M4 6h16M4 12h16M4 18h10" />
+  </svg>
+);
+const IcUser = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+const IcHeart = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+  </svg>
+);
+const IcGrid = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+  </svg>
+);
+const IcUsers = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+  </svg>
+);
+const IcFlame = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+  </svg>
+);
+const IcPlus = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+);
+
 export default async function HomePage({ searchParams }: Props) {
   const { sort } = await searchParams;
   const active = (SORTS.find((s) => s.id === sort)?.id ?? 'yeni') as TopicSort;
 
-  const [categories, topics, stats, user, latest, newest] = await Promise.all([
+  const [categories, topics, stats, user, latest, newest, online] = await Promise.all([
     listCategories(),
     listTopics({ sort: active }),
     siteStats(),
     getCurrentUser(),
     listLatestPosts(6),
-    latestMember()
+    latestMember(),
+    onlineStats()
   ]);
 
   return (
@@ -170,6 +219,86 @@ export default async function HomePage({ searchParams }: Props) {
             </div>
           </div>
         </aside>
+      </div>
+
+      {/* ---- İSTATİSTİK KARTLARI ---- */}
+      <div className="stat-band">
+        <div className="stat-card">
+          <div>
+            <b>{stats.topics}</b>
+            <span className="lb">Konular</span>
+          </div>
+          <span className="ic">{IcTopic}</span>
+        </div>
+        <div className="stat-card">
+          <div>
+            <b>{stats.replies}</b>
+            <span className="lb">Mesajlar</span>
+          </div>
+          <span className="ic">{IcMsg}</span>
+        </div>
+        <div className="stat-card">
+          <div>
+            <b>{stats.members}</b>
+            <span className="lb">Kullanıcılar</span>
+          </div>
+          <span className="ic">{IcUser}</span>
+        </div>
+        <div className="stat-card">
+          <div style={{ minWidth: 0 }}>
+            <b style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {newest ? displayName(newest) : '—'}
+            </b>
+            <span className="lb">Son üye</span>
+          </div>
+          <span className="ic">{IcHeart}</span>
+        </div>
+      </div>
+
+      {/* ---- HAKKIMIZDA / ÇEVRİM İÇİ / HIZLI MENÜ ---- */}
+      <div className="home-cols">
+        <div className="widget">
+          <div className="widget-title">Hakkımızda</div>
+          <div className="widget-pad" style={{ fontSize: 13.5, color: 'var(--muted)', lineHeight: 1.75 }}>
+            Play Forum, Play uygulamasının Google Play kapalı test topluluğu için kuruldu.
+            Amacımız; test sürecindeki deneyimleri paylaşmak, sorulara birlikte cevap bulmak
+            ve uygulamayı topluluk geri bildirimiyle daha iyiye taşımak. Saygılı, reklamsız
+            ve doğru kategoride paylaşılan her konu bu topluluğu büyütür.
+          </div>
+        </div>
+
+        <div className="widget">
+          <div className="widget-title">Çevrim İçi İstatistikler</div>
+          <div className="kv-row">
+            <span>Çevrim içi kullanıcılar (15 dk):</span>
+            <b>{online.online}</b>
+          </div>
+          <div className="kv-row">
+            <span>Toplam üye:</span>
+            <b>{online.members}</b>
+          </div>
+          <div className="kv-row">
+            <span>Toplam görüntülenme:</span>
+            <b>{online.views}</b>
+          </div>
+          <div className="widget-note">Toplamlar, gizli ziyaretçileri içerebilir.</div>
+        </div>
+
+        <div className="widget">
+          <div className="widget-title">Hızlı Menü</div>
+          <Link className="qm-row" href="/kategoriler">
+            <span className="ic">{IcGrid}</span> Kategoriler
+          </Link>
+          <Link className="qm-row" href="/uyeler">
+            <span className="ic">{IcUsers}</span> Üyeler
+          </Link>
+          <Link className="qm-row" href="/?sort=populer">
+            <span className="ic">{IcFlame}</span> Popüler Konular
+          </Link>
+          <Link className="qm-row" href="/yeni-konu">
+            <span className="ic">{IcPlus}</span> Yeni Konu Aç
+          </Link>
+        </div>
       </div>
     </>
   );

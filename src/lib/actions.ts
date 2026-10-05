@@ -191,6 +191,10 @@ export async function deleteCategoryAction(formData: FormData): Promise<ActionRe
   return res;
 }
 
+export async function touchPresenceAction(): Promise<ActionResult> {
+  return await db.touchPresence();
+}
+
 export async function editPostAction(formData: FormData): Promise<ActionResult> {
   return await db.updatePost(
     String(formData.get('post_id') ?? ''),
