@@ -192,8 +192,6 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         ))}
       </div>
 
-      <div style={{ height: 70 }} />
-
       {user ? (
         topic.is_locked ? (
           <div className="card empty">Bu konu kilitlenmiş, yeni cevap yazılamaz.</div>
