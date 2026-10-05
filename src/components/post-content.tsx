@@ -12,7 +12,7 @@ const SAFE_URL = /^(https?:\/\/|\/|#|mailto:)/i;
 const safeUrl = (u: string) => (SAFE_URL.test(u.trim()) ? u.trim() : '#');
 
 const INLINE =
-  /(!\[([^\]]*)\]\(([^)\s]+)\))|(\[([^\]]+)\]\(([^)\s]+)\))|(\*\*([^*]+)\*\*)|(~~([^~]+)~~)|(\*([^*\n]+)\*)|(`([^`\n]+)`)/g;
+  /(!\[([^\]]*)\]\(([^)\s]+)\))|(\[([^\]]+)\]\(([^)\s]+)\))|(\*\*([^*]+)\*\*)|(~~([^~]+)~~)|(\*([^*\n]+)\*)|(`([^`\n]+)`)|(https?:\/\/[^\s)]+)/g;
 
 function renderInlineText(text: string, keyBase: string): ReactNode {
   const nodes: ReactNode[] = [];
@@ -45,6 +45,21 @@ function renderInlineText(text: string, keyBase: string): ReactNode {
           {m[14]}
         </code>
       );
+    } else if (m[15] !== undefined) {
+      // Çıplak URL -> tıklanabilir bağlantı (sondaki noktalama hariç)
+      let u = m[15];
+      let trail = '';
+      const tm = u.match(/[.,;:!?'"]+$/);
+      if (tm) {
+        trail = tm[0];
+        u = u.slice(0, u.length - trail.length);
+      }
+      nodes.push(
+        <a key={key} href={safeUrl(u)} target="_blank" rel="noopener noreferrer">
+          {u}
+        </a>
+      );
+      if (trail) nodes.push(trail);
     }
     last = m.index + m[0].length;
   }

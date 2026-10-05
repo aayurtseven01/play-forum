@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { editPostAction, editTopicAction, markSolutionAction } from '@/lib/actions';
+import RichEditor from './rich-editor';
 
 const PencilIcon = (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -41,7 +42,7 @@ export function EditPostButton({ postId, initial }: { postId: string; initial: s
       {open && (
         <div style={{ width: '100%' }}>
           {err && <div className="error-box">{err}</div>}
-          <textarea className="edit-area" value={text} onChange={(e) => setText(e.target.value)} />
+          <RichEditor value={text} onChange={setText} rows={6} />
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <button className="btn btn-primary btn-sm" onClick={save} disabled={pending}>
               {pending ? 'Kaydediliyor…' : 'Kaydet'}
@@ -102,7 +103,7 @@ export function EditTopicButton({
           </div>
           <div className="field">
             <label>İlk mesaj</label>
-            <textarea className="edit-area" value={c} onChange={(e) => setC(e.target.value)} />
+            <RichEditor value={c} onChange={setC} rows={8} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="btn btn-primary btn-sm" onClick={save} disabled={pending}>
