@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useActionState } from 'react';
 import { createTopicAction } from '@/lib/actions';
 import type { ActionResult } from '@/lib/actions';
 import type { Category } from '@/lib/types';
+import RichEditor from './rich-editor';
 
 const initial: ActionResult = { ok: true };
 
@@ -18,6 +20,7 @@ export default function NewTopicForm({
     (_: ActionResult, formData: FormData) => createTopicAction(formData),
     initial
   );
+  const [content, setContent] = useState('');
 
   return (
     <form action={action} className="card card-pad">
@@ -40,12 +43,23 @@ export default function NewTopicForm({
         <div className="hint">Örn: “Next.js’te middleware ile giriş kontrolü nasıl yapılır?”</div>
       </label>
 
-      <label className="field">
+      <div className="field">
         İçerik
-        <textarea name="content" placeholder="Sorununu veya paylaşmak istediğini detaylıca anlat…" required />
-      </label>
+        <RichEditor
+          name="content"
+          value={content}
+          onChange={setContent}
+          placeholder="Sorununu veya paylaşmak istediğini detaylıca anlat… Araç çubuğundan kalın yazı, liste, bağlantı, görsel ve emoji ekleyebilirsin."
+          rows={10}
+          required
+        />
+      </div>
 
-      <button className="btn btn-primary" type="submit" disabled={pending || categories.length === 0}>
+      <button
+        className="btn btn-primary"
+        type="submit"
+        disabled={pending || categories.length === 0}
+      >
         {pending ? 'Gönderiliyor…' : 'Konuyu Yayınla'}
       </button>
     </form>

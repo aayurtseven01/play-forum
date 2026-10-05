@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { createPostAction } from '@/lib/actions';
+import RichEditor from './rich-editor';
 
 /**
  * Discourse tarzı alt kompozör çekmecesi.
@@ -55,11 +56,11 @@ export default function Composer({ topicId, locked }: { topicId: string; locked?
       </div>
       <div className="composer-body">
         {err && <div className="error-box">{err}</div>}
-        <textarea
-          ref={ref}
+        <RichEditor
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Cevabını yaz… Alıntı için bir gönderideki ❝ butonunu kullan."
+          onChange={setText}
+          rows={6}
+          placeholder="Cevabını yaz… Araç çubuğundan biçimlendirme, bağlantı, görsel ve emoji ekleyebilirsin. Alıntı için bir gönderideki ❝ butonunu kullan."
         />
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           <button className="btn btn-primary" onClick={submit} disabled={pending || text.trim().length < 2}>

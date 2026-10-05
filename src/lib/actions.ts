@@ -176,6 +176,45 @@ export async function uploadAvatarAction(formData: FormData): Promise<ActionResu
   return res;
 }
 
+/** Mesaj/konu eki yükle (Supabase Storage 'attachments') */
+export async function uploadAttachmentAction(
+  formData: FormData
+): Promise<ActionResult & { url?: string }> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: 'Önce bir dosya seç.' };
+  const okTypes = [
+    'image/png',
+    'image/jpeg',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+    'application/zip'
+  ];
+  if (!okTypes.includes(file.type))
+    return { ok: false, error: 'İzin verilen türler: PNG, JPG, WEBP, GIF, PDF, ZIP.' };
+  if (file.size > 4 * 1024 * 1024) return { ok: false, error: 'Dosya 4 MB’den küçük olmalı.' };
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Giriş yapmalısın.' };
+
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'bin';
+  const path = `${user.id}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('attachments')
+    .upload(path, Buffer.from(await file.arrayBuffer()), {
+      contentType: file.type,
+      upsert: false
+    });
+  if (error) return { ok: false, error: `Yükleme hatası: ${error.message}` };
+
+  const { data: pub } = supabase.storage.from('attachments').getPublicUrl(path);
+  return { ok: true, url: pub.publicUrl };
+}
+
 export async function setAdminAction(formData: FormData): Promise<ActionResult> {
   const res = await db.setAdmin(
     String(formData.get('user_id') ?? ''),
