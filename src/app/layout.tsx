@@ -3,8 +3,8 @@ import './globals.css';
 import SiteHeader from '@/components/site-header';
 
 export const metadata: Metadata = {
-  title: { default: 'Forum', template: '%s · Forum' },
-  description: 'Supabase tabanlı topluluk forumu'
+  title: { default: 'LinguaPro Forum', template: '%s · LinguaPro Forum' },
+  description: 'LinguaPro kapalı test topluluk forumu — Supabase tabanlı'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
