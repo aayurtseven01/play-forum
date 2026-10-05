@@ -11,16 +11,19 @@ const initial: ActionResult = { ok: true };
 
 export default function NewTopicForm({
   categories,
-  defaultCategoryId
+  defaultCategoryId,
+  canPoll
 }: {
   categories: Category[];
   defaultCategoryId?: string;
+  canPoll?: boolean;
 }) {
   const [state, action, pending] = useActionState(
     (_: ActionResult, formData: FormData) => createTopicAction(formData),
     initial
   );
   const [content, setContent] = useState('');
+  const [opts, setOpts] = useState<string[]>(['', '']);
 
   return (
     <form action={action} className="card card-pad">
@@ -54,6 +57,46 @@ export default function NewTopicForm({
           required
         />
       </div>
+
+      {canPoll && (
+        <div className="field poll-setup">
+          <b style={{ fontSize: 14.5 }}>📊 Anket ekle (isteğe bağlı)</b>
+          <div className="hint">
+            Anket açma yetkin var; tüm üyeler oy kullanabilir. Soruyu boş bırakırsan anket oluşmaz.
+          </div>
+          <input name="poll_question" maxLength={180} placeholder="Anket sorusu… örn: Hangi özelliği önce test edelim?" />
+          {opts.map((o, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <input
+                value={o}
+                maxLength={120}
+                placeholder={`Seçenek ${i + 1}`}
+                onChange={(e) =>
+                  setOpts((prev) => prev.map((x, j) => (j === i ? e.target.value : x)))
+                }
+              />
+              {opts.length > 2 && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => setOpts((prev) => prev.filter((_, j) => j !== i))}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          ))}
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
+            <button type="button" className="btn btn-sm" onClick={() => setOpts((p) => [...p, ''])}>
+              + Seçenek
+            </button>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 13 }}>
+              <input type="checkbox" name="poll_multiple" value="1" /> Birden fazla seçim yapılabilsin
+            </label>
+          </div>
+          <input type="hidden" name="poll_options" value={JSON.stringify(opts)} />
+        </div>
+      )}
 
       <button
         className="btn btn-primary"

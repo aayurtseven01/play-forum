@@ -28,6 +28,7 @@ export default async function NewTopicPage({
         <NewTopicForm
           categories={categories}
           defaultCategoryId={categories.find((c) => c.slug === sp.kategori)?.id}
+          canPoll={Boolean(user && (user.is_admin || user.is_moderator))}
         />
       )}
     </>

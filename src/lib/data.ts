@@ -1503,3 +1503,106 @@ function logErr(where: string, error: { message: string; code?: string }): null 
   console.error(`[supabase:${where}]`, error.code, error.message);
   return null;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Anketler                                                           */
+/* ------------------------------------------------------------------ */
+
+export type PollData = {
+  id: string;
+  topic_id: string;
+  question: string;
+  multiple: boolean;
+  options: { id: string; label: string; position: number; votes: number }[];
+  myVotes: string[];
+  totalVoters: number;
+};
+
+export async function getPollForTopic(topicId: string): Promise<PollData | null> {
+  if (isDemoEnv()) return null;
+  const supabase = await getSupabase();
+  if (!supabase) return null;
+  const { data: poll } = await supabase
+    .from('polls')
+    .select('id, topic_id, question, multiple')
+    .eq('topic_id', topicId)
+    .maybeSingle();
+  if (!poll) return null;
+  const [opts, votes, me] = await Promise.all([
+    supabase.from('poll_options').select('id, label, position').eq('poll_id', poll.id).order('position'),
+    supabase.from('poll_votes').select('option_id, user_id').eq('poll_id', poll.id),
+    supabase.auth.getUser()
+  ]);
+  const vlist = votes.data ?? [];
+  const counts: Record<string, number> = {};
+  for (const v of vlist) counts[v.option_id] = (counts[v.option_id] ?? 0) + 1;
+  const uid = me.data.user?.id ?? null;
+  return {
+    id: poll.id,
+    topic_id: poll.topic_id,
+    question: poll.question,
+    multiple: poll.multiple,
+    options: (opts.data ?? []).map((o) => ({ ...o, votes: counts[o.id] ?? 0 })),
+    myVotes: vlist.filter((v) => v.user_id === uid).map((v) => v.option_id),
+    totalVoters: new Set(vlist.map((v) => v.user_id)).size
+  };
+}
+
+/** Anket açma: yalnızca admin ve moderatör */
+export async function createPoll(input: {
+  topicId: string;
+  question: string;
+  options: string[];
+  multiple: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me || (!me.is_admin && !me.is_moderator))
+    return { ok: false, error: 'Anket açma yetkisi yalnızca admin ve moderatörlerde.' };
+  const question = input.question.trim();
+  const options = input.options.map((o) => o.trim()).filter(Boolean);
+  if (question.length < 5) return { ok: false, error: 'Anket sorusu çok kısa.' };
+  if (options.length < 2) return { ok: false, error: 'Anket için en az 2 seçenek gerekli.' };
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { data: poll, error } = await supabase
+    .from('polls')
+    .insert({ topic_id: input.topicId, question, multiple: input.multiple })
+    .select('id')
+    .single();
+  if (error) return { ok: false, error: error.message };
+  const { error: oe } = await supabase
+    .from('poll_options')
+    .insert(options.map((label, i) => ({ poll_id: poll.id, label, position: i })));
+  if (oe) return { ok: false, error: oe.message };
+  return { ok: true };
+}
+
+export async function votePoll(
+  pollId: string,
+  optionIds: string[]
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, error: 'Önce giriş yapmalısın.' };
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { data: poll } = await supabase
+    .from('polls')
+    .select('id, multiple')
+    .eq('id', pollId)
+    .maybeSingle();
+  if (!poll) return { ok: false, error: 'Anket bulunamadı.' };
+  const ids = [...new Set(optionIds)];
+  if (ids.length === 0) return { ok: false, error: 'Bir seçenek işaretlemelisin.' };
+  if (!poll.multiple && ids.length > 1) return { ok: false, error: 'Bu ankette tek seçim yapılır.' };
+  const { data: opts } = await supabase.from('poll_options').select('id').eq('poll_id', pollId);
+  const valid = new Set((opts ?? []).map((o) => o.id));
+  if (!ids.every((i) => valid.has(i))) return { ok: false, error: 'Geçersiz seçenek.' };
+
+  await supabase.from('poll_votes').delete().eq('poll_id', pollId).eq('user_id', me.id);
+  const { error } = await supabase
+    .from('poll_votes')
+    .insert(ids.map((option_id) => ({ poll_id: pollId, option_id, user_id: me.id })));
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

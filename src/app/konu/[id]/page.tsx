@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import LikeButton from '@/components/like-button';
 import Composer from '@/components/composer';
 import RoleBadge from '@/components/role-badge';
+import PollCard from '@/components/poll-card';
 import ProgressBar from '@/components/progress-bar';
 import { QuoteButton, ShareButton } from '@/components/post-buttons';
 import { EditPostButton, EditTopicButton, MarkSolutionButton } from '@/components/edit-buttons';
@@ -14,6 +15,7 @@ import {
   countPostsByAuthor,
   displayName,
   getReactionMap,
+  getPollForTopic,
   getTopic,
   getCurrentUser,
   incrementViews,
@@ -37,6 +39,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
   if (!topic) notFound();
 
   const [user] = await Promise.all([getCurrentUser(), incrementViews(id)]);
+  const poll = await getPollForTopic(id);
 
   const reactions = await getReactionMap(user?.id ?? null, {
     topicIds: [topic.id],
@@ -116,6 +119,8 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
       <div className="post-stream">
         {/* İlk mesaj */}
+        {poll && <PollCard poll={poll} topicId={topic.id} />}
+
         <article className="post">
           <AuthorCard
             profile={topic.author}

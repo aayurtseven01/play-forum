@@ -60,9 +60,36 @@ export async function createTopicAction(formData: FormData): Promise<ActionResul
   const res = await db.createTopic({ categoryId, title, content });
   if (!res.ok || !res.id) return { ok: false, error: res.error };
 
+  // Anket (yalnızca admin/moderatör — createPoll ayrıca doğrular)
+  const pollQuestion = String(formData.get('poll_question') ?? '').trim();
+  if (pollQuestion) {
+    let opts: string[] = [];
+    try {
+      opts = JSON.parse(String(formData.get('poll_options') ?? '[]')) as string[];
+    } catch {
+      opts = [];
+    }
+    await db.createPoll({
+      topicId: res.id,
+      question: pollQuestion,
+      options: opts,
+      multiple: formData.get('poll_multiple') === '1'
+    });
+  }
+
   const path = `/konu/${res.id}`;
   revalidatePath('/');
   redirect(path);
+}
+
+export async function castPollVotesAction(formData: FormData): Promise<ActionResult> {
+  const topicId = String(formData.get('topic_id') ?? '');
+  const res = await db.votePoll(
+    String(formData.get('poll_id') ?? ''),
+    formData.getAll('option_id').map(String)
+  );
+  if (topicId) revalidatePath(`/konu/${topicId}`);
+  return res;
 }
 
 export async function createCategoryAction(formData: FormData): Promise<ActionResult> {
