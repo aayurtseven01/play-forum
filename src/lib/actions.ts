@@ -150,8 +150,8 @@ export async function uploadAvatarAction(formData: FormData): Promise<ActionResu
   const file = formData.get('avatar');
   if (!(file instanceof File) || file.size === 0)
     return { ok: false, error: 'Önce bir görsel seç.' };
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
-    return { ok: false, error: 'Yalnızca PNG, JPG veya WEBP yükleyebilirsin.' };
+  if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type))
+    return { ok: false, error: 'Yalnızca PNG, JPG, WEBP veya GIF yükleyebilirsin.' };
   if (file.size > 512 * 1024)
     return { ok: false, error: 'Görsel 512 KB’den küçük olmalı.' };
 

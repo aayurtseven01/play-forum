@@ -41,7 +41,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
             <input
               type="file"
               name="avatar"
-              accept="image/png,image/jpeg,image/webp"
+              accept="image/png,image/jpeg,image/webp,image/gif"
               required
               style={{ fontSize: 13, color: 'var(--muted)' }}
             />
@@ -49,7 +49,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
               {avatarPending ? 'Yükleniyor…' : 'Yükle'}
             </button>
           </form>
-          <div className="hint">PNG / JPG / WEBP · en fazla 512 KB</div>
+          <div className="hint">PNG / JPG / WEBP / GIF · en fazla 512 KB</div>
         </div>
       </div>
 
