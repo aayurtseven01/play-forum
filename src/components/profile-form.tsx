@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useState, useActionState, useTransition } from 'react';
 import { pickStockAvatarAction, updateProfileAction, uploadAvatarAction } from '@/lib/actions';
 import type { ActionResult } from '@/lib/actions';
 import { STOCK_AVATARS } from '@/lib/format';
@@ -8,14 +8,11 @@ import type { Profile } from '@/lib/types';
 import UserAvatar from './avatar';
 
 const initial: ActionResult = { ok: true };
+const OK_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
 export default function ProfileForm({ profile }: { profile: Profile }) {
   const [state, action, pending] = useActionState(
     (_: ActionResult, formData: FormData) => updateProfileAction(formData),
-    initial
-  );
-  const [avatarState, avatarAction, avatarPending] = useActionState(
-    (_: ActionResult, formData: FormData) => uploadAvatarAction(formData),
     initial
   );
   const [stockState, stockAction, stockPending] = useActionState(
@@ -23,21 +20,54 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
     initial
   );
 
-  const lastError = !state.ok ? state.error : !avatarState.ok ? avatarState.error : !stockState.ok ? stockState.error : null;
+  // Avatar yükleme: istemcide ön kontrol → sunucuya hiç çakılmadan gider
+  const [avatarMsg, setAvatarMsg] = useState<ActionResult | null>(null);
+  const [avatarPending, startAvatar] = useTransition();
+
+  function onAvatarSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const f = fd.get('avatar');
+    if (!(f instanceof File) || f.size === 0) {
+      setAvatarMsg({ ok: false, error: 'Önce bir görsel seç.' });
+      return;
+    }
+    if (!OK_TYPES.includes(f.type)) {
+      setAvatarMsg({ ok: false, error: 'Yalnızca PNG, JPG, WEBP veya GIF yükleyebilirsin.' });
+      return;
+    }
+    if (f.size > 1024 * 1024) {
+      setAvatarMsg({ ok: false, error: 'Görsel 1 MB’den küçük olmalı.' });
+      return;
+    }
+    setAvatarMsg(null);
+    startAvatar(async () => {
+      const res = await uploadAvatarAction(fd);
+      setAvatarMsg(res);
+    });
+  }
+
+  const lastError = !state.ok
+    ? state.error
+    : !stockState.ok
+      ? stockState.error
+      : avatarMsg && !avatarMsg.ok
+        ? avatarMsg.error
+        : null;
+  const allOk = state.ok && stockState.ok && (!avatarMsg || avatarMsg.ok);
 
   return (
     <div className="card card-pad">
       {lastError && <div className="error-box">{lastError}</div>}
-      {state.ok && avatarState.ok && stockState.ok && (
-        <div className="ok-box">Profilin güncel.</div>
-      )}
+      {allOk && <div className="ok-box">Profilin güncel.</div>}
 
       {/* ---------- AVATAR ---------- */}
       <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20 }}>
         <UserAvatar profile={profile} size={84} className="avatar lg" />
         <div style={{ flex: 1, minWidth: 240 }}>
           <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Avatarın</div>
-          <form action={avatarAction} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <form onSubmit={onAvatarSubmit} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <input
               type="file"
               name="avatar"
@@ -49,7 +79,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
               {avatarPending ? 'Yükleniyor…' : 'Yükle'}
             </button>
           </form>
-          <div className="hint">PNG / JPG / WEBP / GIF · en fazla 512 KB</div>
+          <div className="hint">PNG / JPG / WEBP / GIF · en fazla 1 MB</div>
         </div>
       </div>
 
