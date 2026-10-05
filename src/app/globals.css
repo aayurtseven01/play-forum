@@ -1014,7 +1014,7 @@ footer .f-wrap a:hover { color: var(--accent); }
 .re-sep { width: 1px; height: 18px; background: var(--border-2); margin: 0 4px; }
 .re-h { font-weight: 700; }
 .re-spacer { flex: 1; }
-.re-preview-btn { min-width: 30px; height: 30px; padding: 0 10px; border: 1px solid var(--border-2); background: var(--surface); color: var(--text); border-radius: 6px; cursor: pointer; font-size: 13px; }
+.re-preview-btn { min-width: 30px; height: 30px; padding: 0 10px; border: 1px solid var(--border-2); background: var(--surface); color: var(--text); border-radius: 6px; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
 .re-preview-btn.active { background: var(--grad-soft); color: var(--accent); border-color: var(--accent); }
 .re-area { display: block; width: 100%; border: none; background: transparent; padding: 12px 14px; resize: vertical; min-height: 120px; color: var(--text); font: inherit; line-height: 1.7; }
 .re-area:focus { outline: none; }

@@ -134,13 +134,30 @@ export default function RichEditor({
         {tb('Madde listesi', () => prefixLines('- '), '•≡')}
         {tb('Numaralı liste', () => prefixLines('1. '), '1.')}
         <span className="re-sep" />
-        {tb('Bağlantı ekle', addLink, '🔗')}
-        {tb('Görsel (adres ile)', addImageUrl, '🖼️')}
-        {tb('Dosya ekle / görsel yükle', () => fileRef.current?.click(), '📎')}
+        {tb(
+          'Bağlantı ekle',
+          addLink,
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>
+        )}
+        {tb(
+          'Görsel (adres ile)',
+          addImageUrl,
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></svg>
+        )}
+        {tb(
+          'Dosya ekle / görsel yükle',
+          () => fileRef.current?.click(),
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+        )}
         {tb('Alıntı', () => wrap('[quote=Yazar]\n', '\n[/quote]', 'alıntılanacak metin'), '❝')}
         {tb('Kod bloğu', () => wrap('```\n', '\n```', 'kod'), '</>')}
         <span className="re-emojipop">
-          {tb('Emoji', () => setEmojiOpen((o) => !o), '😊', emojiOpen)}
+          {tb(
+            'Emoji',
+            () => setEmojiOpen((o) => !o),
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M8 14s1.5 2 4 2 4-2 4-2" /><line x1="9" y1="9" x2="9.01" y2="9" /><line x1="15" y1="9" x2="15.01" y2="9" /></svg>,
+            emojiOpen
+          )}
           {emojiOpen && (
             <div className="re-emojis">
               {EMOJIS.map((e) => (
@@ -164,7 +181,8 @@ export default function RichEditor({
           className={`re-preview-btn${preview ? ' active' : ''}`}
           onClick={() => setPreview((p) => !p)}
         >
-          👁 Önizleme
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" /><circle cx="12" cy="12" r="3" /></svg>
+          Önizleme
         </button>
       </div>
 
@@ -195,7 +213,7 @@ export default function RichEditor({
 
       <div className="re-foot">
         <span className="hint">
-          **kalın** · *italik* · [metin](adres) · ![resim](adres) · 📎 ile dosya yükle
+          **kalın** · *italik* · [metin](adres) · ![resim](adres) · ataç ile dosya yükle
         </span>
         {busy && <span className="re-status">⏳ {status}</span>}
         {!busy && status && <span className="re-status err">{status}</span>}
