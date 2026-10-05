@@ -1053,3 +1053,34 @@ footer .f-wrap a:hover { color: var(--accent); }
 .role-badge { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; letter-spacing: .3px; }
 .role-badge.admin { color: #fff; background: linear-gradient(135deg, #f59e0b, #e11d48); }
 .role-badge.mod { color: #fff; background: linear-gradient(135deg, #0ea5e9, #6366f1); }
+
+/* ---- Büyük yazar kartları + ünvan sistemi ---- */
+.cat-head-title { text-transform: uppercase; letter-spacing: .5px; }
+.post { padding: 24px; }
+.post-avatar-col { width: 190px; }
+.post-avatar-col .name { font-size: 13px; max-width: 190px; }
+.author-stats {
+  width: 100%;
+  margin-top: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+}
+.as-row { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.as-row b { color: var(--text); font-weight: 700; }
+.trust[data-level='4'] i { background: #8b5cf6; }
+.trust[data-level='5'] i { background: #f59e0b; }
+.trust[data-level='6'] i { background: #f97316; }
+.trust[data-level='7'] i { background: #ef4444; }
+.trust[data-level='8'] i { background: #ec4899; }
+.trust[data-level='9'] i { background: linear-gradient(135deg, #f59e0b, #e11d48); }
+@media (max-width: 760px) {
+  .post-avatar-col { width: 92px; }
+  .post-avatar-col .name { max-width: 92px; }
+  .author-stats { display: none; }
+}

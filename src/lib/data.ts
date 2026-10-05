@@ -65,12 +65,45 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 import { displayName, type Nameable } from './format';
 export { displayName, initials, STOCK_AVATARS, type Nameable } from './format';
 
-/** Discourse benzeri güven seviyesi etiketi (mesaj sayısına göre) */
+/** 10 kademeli otomatik ünvan (mesaj sayısına göre) */
 export function trustInfo(postCount: number): { label: string; level: number } {
-  if (postCount >= 100) return { label: 'Müdavim', level: 3 };
-  if (postCount >= 20) return { label: 'Üye', level: 2 };
-  if (postCount >= 1) return { label: 'Katılımcı', level: 1 };
+  if (postCount >= 250) return { label: 'Efsane', level: 9 };
+  if (postCount >= 150) return { label: 'Kıdemli', level: 8 };
+  if (postCount >= 100) return { label: 'Uzman', level: 7 };
+  if (postCount >= 60) return { label: 'Aktif Üye', level: 6 };
+  if (postCount >= 35) return { label: 'Paylaşımcı', level: 5 };
+  if (postCount >= 20) return { label: 'Katılımcı', level: 4 };
+  if (postCount >= 10) return { label: 'Meraklı', level: 3 };
+  if (postCount >= 5) return { label: 'Acemi', level: 2 };
+  if (postCount >= 2) return { label: 'Üye', level: 1 };
   return { label: 'Yeni Üye', level: 0 };
+}
+
+/** Yazarların aldığı toplam beğeni (konu + mesaj) */
+export async function likeCountsForAuthors(ids: string[]): Promise<Record<string, number>> {
+  if (!ids.length) return {};
+  if (isDemoEnv()) return {};
+  const supabase = await getSupabase();
+  if (!supabase) return {};
+  const [reactions, posts, topics] = await Promise.all([
+    supabase.from('reactions').select('target_type, target_id').limit(10000),
+    supabase.from('posts').select('id, author_id').limit(10000),
+    supabase.from('topics').select('id, author_id').limit(10000)
+  ]);
+  const want = new Set(ids);
+  const postAuthor = new Map((posts.data ?? []).map((x) => [x.id, x.author_id]));
+  const topicAuthor = new Map((topics.data ?? []).map((x) => [x.id, x.author_id]));
+  const out: Record<string, number> = {};
+  for (const r of reactions.data ?? []) {
+    const author =
+      r.target_type === 'post'
+        ? postAuthor.get(r.target_id)
+        : r.target_type === 'topic'
+          ? topicAuthor.get(r.target_id)
+          : undefined;
+    if (author && want.has(author)) out[author] = (out[author] ?? 0) + 1;
+  }
+  return out;
 }
 
 /* ------------------------------------------------------------------ */
@@ -170,7 +203,7 @@ const TOPIC_SELECT = `
   id, category_id, author_id, title, content, views, reply_count,
   is_pinned, is_locked, is_private, participants,
   created_at, updated_at,
-  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ),
+  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator, created_at ),
   category:categories ( id, name, slug, color )
 `;
 
@@ -178,7 +211,7 @@ const TOPIC_SELECT = `
 const TOPIC_SELECT_LEGACY = `
   id, category_id, author_id, title, content, views, reply_count,
   is_pinned, is_locked, created_at, updated_at,
-  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ),
+  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator, created_at ),
   category:categories ( id, name, slug, color )
 `;
 
@@ -313,7 +346,7 @@ async function attachLastPosters(supabase: SupabaseClient, topics: Topic[]): Pro
   const ids = topics.map((t) => t.id);
   const { data } = await supabase
     .from('posts')
-    .select('topic_id, author_id, created_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator )')
+    .select('topic_id, author_id, created_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator, created_at )')
     .in('topic_id', ids)
     .order('created_at', { ascending: false })
     .limit(200);
@@ -390,7 +423,7 @@ async function fetchPosts(supabase: SupabaseClient, topicId: string): Promise<Po
   const { data } = await supabase
     .from('posts')
     .select(
-      'id, topic_id, author_id, content, is_solution, created_at, updated_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator )'
+      'id, topic_id, author_id, content, is_solution, created_at, updated_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator, created_at )'
     )
     .eq('topic_id', topicId)
     .order('created_at', { ascending: true });
@@ -1083,7 +1116,7 @@ export async function adminListPosts(limit = 50) {
   const { data, error } = await supabase
     .from('posts')
     .select(
-      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ), topic:topics ( id, title )'
+      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator, created_at ), topic:topics ( id, title )'
     )
     .order('created_at', { ascending: false })
     .limit(limit);
@@ -1379,7 +1412,7 @@ export async function listLatestPosts(limit = 6): Promise<LatestPost[]> {
   const { data, error } = await supabase
     .from('posts')
     .select(
-      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ), topic:topics ( id, title, is_private )'
+      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator, created_at ), topic:topics ( id, title, is_private )'
     )
     .order('created_at', { ascending: false })
     .limit(limit * 3);

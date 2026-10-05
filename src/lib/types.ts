@@ -35,9 +35,9 @@ export type Topic = {
   created_at: string;
   updated_at: string;
   // join ile gelenler
-  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator'> | null;
+  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator' | 'created_at'> | null;
   category?: Pick<Category, 'id' | 'name' | 'slug' | 'color'> | null;
-  last_posters?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator'>[];
+  last_posters?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator' | 'created_at'>[];
   last_activity?: string | null;
 };
 
@@ -49,7 +49,7 @@ export type Post = {
   is_solution: boolean;
   created_at: string;
   updated_at: string;
-  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator'> | null;
+  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator' | 'created_at'> | null;
   post_number?: number;
 };
 

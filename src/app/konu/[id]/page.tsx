@@ -18,8 +18,10 @@ import {
   getCurrentUser,
   incrementViews,
   timeAgo,
-  trustInfo
+  trustInfo,
+  likeCountsForAuthors
 } from '@/lib/data';
+import type { Topic } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +50,9 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
   // güven seviyesi: yazarların toplam mesaj sayısına göre
   const authorIds = [...new Set([topic.author_id, ...topic.posts.map((p) => p.author_id)])];
   const counts = await Promise.all(authorIds.map((aid) => countPostsByAuthor(aid)));
-  const trustOf = (aid: string) => trustInfo(counts[authorIds.indexOf(aid)] ?? 0);
+  const likesMap = await likeCountsForAuthors(authorIds);
+  const countOf = (aid: string) => counts[authorIds.indexOf(aid)] ?? 0;
+  const trustOf = (aid: string) => trustInfo(countOf(aid));
 
   const pinnedNow = topic.is_pinned;
   const lockedNow = topic.is_locked;
@@ -113,10 +117,13 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       <div className="post-stream">
         {/* İlk mesaj */}
         <article className="post">
-          <div className="post-avatar-col">
-            <UserAvatar profile={topic.author} className="avatar lg" size={46} />
-            <span className="name">{displayName(topic.author)}</span>
-          </div>
+          <AuthorCard
+            profile={topic.author}
+            aid={topic.author_id}
+            countOf={countOf}
+            likesMap={likesMap}
+            trustOf={trustOf}
+          />
           <div className="post-body">
             <div className="post-head">
               {topic.author?.username ? (
@@ -126,10 +133,6 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
               ) : (
                 <b>{displayName(topic.author)}</b>
               )}
-              <RoleBadge profile={topic.author} />
-              <span className="trust" data-level={trustOf(topic.author_id).level}>
-                <i /> {trustOf(topic.author_id).label}
-              </span>
               <span>{timeAgo(topic.created_at)}</span>
               <span className="num">#1</span>
             </div>
@@ -150,10 +153,13 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
         {topic.posts.map((p) => (
           <article className="post" key={p.id}>
-            <div className="post-avatar-col">
-              <UserAvatar profile={p.author} className="avatar lg" size={46} />
-              <span className="name">{displayName(p.author)}</span>
-            </div>
+            <AuthorCard
+              profile={p.author}
+              aid={p.author_id}
+              countOf={countOf}
+              likesMap={likesMap}
+              trustOf={trustOf}
+            />
             <div className="post-body">
               <div className="post-head">
                 {p.author?.username ? (
@@ -163,10 +169,6 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                 ) : (
                   <b>{displayName(p.author)}</b>
                 )}
-                <RoleBadge profile={p.author} />
-                <span className="trust" data-level={trustOf(p.author_id).level}>
-                  <i /> {trustOf(p.author_id).label}
-                </span>
                 <span>{timeAgo(p.created_at)}</span>
                 {p.is_solution && <span className="badge-pill">✓ Çözüm</span>}
                 <span className="num">#{p.post_number}</span>
@@ -211,5 +213,65 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
     </>
+  );
+}
+
+/** XenForo tarzı yazar kartı: avatar + ünvan + istatistikler */
+function AuthorCard({
+  profile,
+  aid,
+  countOf,
+  likesMap,
+  trustOf
+}: {
+  profile: Topic['author'];
+  aid: string;
+  countOf: (aid: string) => number;
+  likesMap: Record<string, number>;
+  trustOf: (aid: string) => { label: string; level: number };
+}) {
+  const posts = countOf(aid);
+  const likes = likesMap[aid] ?? 0;
+  const joined = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      })
+    : '—';
+  const t = trustOf(aid);
+  return (
+    <div className="post-avatar-col">
+      <UserAvatar profile={profile} className="avatar lg" size={84} />
+      {profile?.username ? (
+        <Link href={`/profil/${profile.username}`} className="name">
+          {displayName(profile)}
+        </Link>
+      ) : (
+        <span className="name">{displayName(profile)}</span>
+      )}
+      <RoleBadge profile={profile} />
+      <span className="trust" data-level={t.level}>
+        <i /> {t.label}
+      </span>
+      <div className="author-stats">
+        <div className="as-row">
+          <span>Katılım:</span>
+          <b>{joined}</b>
+        </div>
+        <div className="as-row">
+          <span>Mesajlar:</span>
+          <b>{posts}</b>
+        </div>
+        <div className="as-row">
+          <span>Beğeni:</span>
+          <b>{likes}</b>
+        </div>
+        <div className="as-row">
+          <span>Puan:</span>
+          <b>{posts * 2 + likes * 3}</b>
+        </div>
+      </div>
+    </div>
   );
 }
