@@ -24,8 +24,8 @@ export default async function SiteHeader() {
       <header className="topbar">
         <div className="container topbar-inner">
           <Link href="/" className="logo">
-            <span className="logo-mark">F</span>
-            Forum
+            <span className="logo-mark">L</span>
+            LinguaPro
           </Link>
 
           <nav className="nav-links">

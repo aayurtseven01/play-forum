@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <div className="container">
           <footer className="footer">
-            <span>© {new Date().getFullYear()} Forum — Next.js + Supabase</span>
+            <span>© {new Date().getFullYear()} LinguaPro Forum — Next.js + Supabase</span>
             <span>Ücretsiz katmanda çalışıyor 🚀</span>
           </footer>
         </div>
