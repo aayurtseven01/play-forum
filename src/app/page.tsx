@@ -37,12 +37,18 @@ export default async function HomePage({ searchParams }: Props) {
   return (
     <>
       <div className="d-banner">
-        <div>
-          <h1>Play Forum&apos;a hoş geldin{user ? ` ${user.display_name ?? user.username}` : ''} 👋</h1>
-          <p>
-            Kapalı test topluluğunun buluşma noktası. Soru sor, deneyimini paylaş,
-            geribildirim ver — hep birlikte daha iyiye.
-          </p>
+        <div className="banner-brand">
+          <span className="banner-logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Play Forum logosu" />
+          </span>
+          <div>
+            <h1>Play Forum</h1>
+            <p>
+              Kapalı test topluluğunun buluşma noktası{user ? ` — hoş geldin, ${user.display_name ?? user.username}` : ''}.
+              Soru sor, deneyimini paylaş, geribildirim ver.
+            </p>
+          </div>
         </div>
         <div className="stats">
           <div className="stat">

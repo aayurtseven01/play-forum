@@ -44,7 +44,10 @@ export default async function SiteHeader() {
       <header className="d-header">
         <div className="container d-wrap">
           <Link href="/" className="d-brand">
-            <span className="logo-box">P</span>
+            <span className="logo-box">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="" />
+            </span>
             Play Forum
           </Link>
 

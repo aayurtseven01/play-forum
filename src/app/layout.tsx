@@ -4,7 +4,8 @@ import SiteHeader from '@/components/site-header';
 
 export const metadata: Metadata = {
   title: { default: 'Play Forum', template: '%s · Play Forum' },
-  description: 'Play kapalı test topluluk forumu — Supabase tabanlı'
+  description: 'Play kapalı test topluluk forumu — Supabase tabanlı',
+  icons: { icon: '/logo.png' }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
