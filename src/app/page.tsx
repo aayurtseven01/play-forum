@@ -130,7 +130,41 @@ export default async function HomePage({ searchParams }: Props) {
               </Link>
             ))}
           </nav>
-          <TopicList topics={topics} />
+
+          {categories.map((c) => {
+            const inCat = topics
+              .filter((t) => t.category?.id === c.id)
+              .sort((a, b) => Number(b.is_pinned ?? false) - Number(a.is_pinned ?? false));
+            return (
+              <section key={c.id} className="cat-section">
+                <header
+                  className="cat-head"
+                  style={{ borderLeftColor: c.color ?? 'var(--accent)' }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <Link href={`/kategori/${c.slug}`} className="cat-head-title">
+                      {c.name}
+                    </Link>
+                    {c.description && <span className="cat-head-desc">{c.description}</span>}
+                  </div>
+                  <span className="cat-head-count">{c.topic_count ?? inCat.length} konu</span>
+                </header>
+                {inCat.length === 0 ? (
+                  <div className="cat-empty">
+                    Henüz konu yok.{' '}
+                    <Link href={`/kategori/${c.slug}`}>İlk konuyu sen aç →</Link>
+                  </div>
+                ) : (
+                  <TopicList topics={inCat.slice(0, 5)} />
+                )}
+                {inCat.length > 5 && (
+                  <Link className="cat-all" href={`/kategori/${c.slug}`}>
+                    Tüm {inCat.length} konuyu gör →
+                  </Link>
+                )}
+              </section>
+            );
+          })}
         </div>
 
         <aside className="d-side">
