@@ -1,12 +1,16 @@
--- Moderatör rolü + yetki escalation kapatma (Play Forum)
+-- Moderatör rolü + yetki escalation kapatma (Play Forum) — DÜZELTİLMIŞ
 alter table public.profiles
   add column if not exists is_moderator boolean not null default false;
 
--- Sahibi yalnızca profil alanlarını güncelleyebilir (is_admin/is_moderator hariç)
+-- Sahibi kendi profilini günceller ama rol alanlarını (is_admin/is_moderator) DEĞİŞTİREMEZ
 drop policy if exists "profiles: sahibi günceller" on public.profiles;
 create policy "profiles: sahibi günceller" on public.profiles
-for update of username, display_name, bio, avatar_url
-using (auth.uid() = id) with check (auth.uid() = id);
+for update using (auth.uid() = id)
+with check (
+  auth.uid() = id
+  and is_admin = (select x.is_admin from public.profiles x where x.id = id)
+  and is_moderator = (select x.is_moderator from public.profiles x where x.id = id)
+);
 
 -- Admin tüm alanları güncelleyebilir (rol atamaları)
 drop policy if exists "profiles: admin günceller" on public.profiles;
