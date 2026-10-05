@@ -5,6 +5,7 @@ export type Profile = {
   bio: string | null;
   avatar_url: string | null;
   is_admin: boolean;
+  is_moderator: boolean;
   created_at: string;
 };
 
@@ -34,9 +35,9 @@ export type Topic = {
   created_at: string;
   updated_at: string;
   // join ile gelenler
-  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'> | null;
+  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator'> | null;
   category?: Pick<Category, 'id' | 'name' | 'slug' | 'color'> | null;
-  last_posters?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>[];
+  last_posters?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator'>[];
   last_activity?: string | null;
 };
 
@@ -48,7 +49,7 @@ export type Post = {
   is_solution: boolean;
   created_at: string;
   updated_at: string;
-  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'> | null;
+  author?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'is_admin' | 'is_moderator'> | null;
   post_number?: number;
 };
 
@@ -73,4 +74,5 @@ export type SessionUser = {
   display_name: string | null;
   avatar_url: string | null;
   is_admin: boolean;
+  is_moderator: boolean;
 };

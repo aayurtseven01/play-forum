@@ -224,6 +224,15 @@ export async function setAdminAction(formData: FormData): Promise<ActionResult> 
   return res;
 }
 
+export async function setModeratorAction(formData: FormData): Promise<ActionResult> {
+  const res = await db.setModerator(
+    String(formData.get('user_id') ?? ''),
+    formData.get('is_moderator') === '1'
+  );
+  revalidatePath('/yonetim');
+  return res;
+}
+
 export async function deleteCategoryAction(formData: FormData): Promise<ActionResult> {
   const res = await db.deleteCategory(String(formData.get('category_id') ?? ''));
   revalidatePath('/yonetim');

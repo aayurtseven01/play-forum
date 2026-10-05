@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import TopicList from '@/components/topic-list';
 import UserAvatar from '@/components/avatar';
+import RoleBadge from '@/components/role-badge';
 import {
   countPostsByAuthor,
   displayName,
@@ -53,8 +54,8 @@ export default async function ProfilePage({
             </span>
           </h1>
           <div className="hint" style={{ marginBottom: 8 }}>
-            @{profile.username}
-            {profile.is_admin && <span className="badge-pill" style={{ marginLeft: 8 }}>Yönetici</span>}
+            @{profile.username}{' '}
+            <RoleBadge profile={profile} />
           </div>
           <p style={{ margin: 0, fontSize: 14, color: 'var(--muted)' }}>
             {profile.bio ?? 'Bu kullanıcı henüz bir açıklama yazmamış.'}

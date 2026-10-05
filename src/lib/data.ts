@@ -32,7 +32,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
       username: p.username,
       display_name: p.display_name,
       avatar_url: p.avatar_url,
-      is_admin: p.is_admin
+      is_admin: p.is_admin,
+      is_moderator: Boolean(p.is_moderator)
     };
   }
 
@@ -46,7 +47,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('username, display_name, avatar_url, is_admin')
+    .select('username, display_name, avatar_url, is_admin, is_moderator')
     .eq('id', user.id)
     .single();
 
@@ -56,7 +57,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     username: profile?.username ?? null,
     display_name: profile?.display_name ?? (user.user_metadata?.full_name ?? null),
     avatar_url: profile?.avatar_url ?? null,
-    is_admin: Boolean(profile?.is_admin)
+    is_admin: Boolean(profile?.is_admin),
+    is_moderator: Boolean(profile?.is_moderator)
   };
 }
 
@@ -168,7 +170,7 @@ const TOPIC_SELECT = `
   id, category_id, author_id, title, content, views, reply_count,
   is_pinned, is_locked, is_private, participants,
   created_at, updated_at,
-  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url ),
+  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ),
   category:categories ( id, name, slug, color )
 `;
 
@@ -176,7 +178,7 @@ const TOPIC_SELECT = `
 const TOPIC_SELECT_LEGACY = `
   id, category_id, author_id, title, content, views, reply_count,
   is_pinned, is_locked, created_at, updated_at,
-  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url ),
+  author:profiles!topics_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ),
   category:categories ( id, name, slug, color )
 `;
 
@@ -311,7 +313,7 @@ async function attachLastPosters(supabase: SupabaseClient, topics: Topic[]): Pro
   const ids = topics.map((t) => t.id);
   const { data } = await supabase
     .from('posts')
-    .select('topic_id, author_id, created_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url )')
+    .select('topic_id, author_id, created_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator )')
     .in('topic_id', ids)
     .order('created_at', { ascending: false })
     .limit(200);
@@ -388,7 +390,7 @@ async function fetchPosts(supabase: SupabaseClient, topicId: string): Promise<Po
   const { data } = await supabase
     .from('posts')
     .select(
-      'id, topic_id, author_id, content, is_solution, created_at, updated_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url )'
+      'id, topic_id, author_id, content, is_solution, created_at, updated_at, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator )'
     )
     .eq('topic_id', topicId)
     .order('created_at', { ascending: true });
@@ -459,6 +461,9 @@ export async function createTopic(input: {
     data: { user }
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Önce giriş yapmalısın.' };
+
+  const _flood = await floodError(supabase, user.id, 'topics');
+  if (_flood) return { ok: false, error: _flood };
 
   const payload: Record<string, unknown> = {
     category_id: isPrivate ? null : input.categoryId,
@@ -601,6 +606,9 @@ export async function createPost(input: {
     data: { user }
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Önce giriş yapmalısın.' };
+
+  const _flood = await floodError(supabase, user.id, 'posts');
+  if (_flood) return { ok: false, error: _flood };
 
   const { data: topic } = await supabase
     .from('topics')
@@ -949,6 +957,28 @@ export async function updateProfile(input: {
   return { ok: true };
 }
 
+/** Peş peşe gönderim sınırı: 60 sn (admin ve moderatör muaf) */
+async function floodError(
+  supabase: SupabaseClient,
+  userId: string,
+  table: 'posts' | 'topics'
+): Promise<string | null> {
+  const me = await getCurrentUser();
+  if (me?.is_admin || me?.is_moderator) return null;
+  const { data } = await supabase
+    .from(table)
+    .select('created_at')
+    .eq('author_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+  const wait = 60_000 - (Date.now() - new Date(data.created_at).getTime());
+  if (wait > 0)
+    return `Peş peşe gönderim sınırı: ${Math.ceil(wait / 1000)} saniye sonra tekrar dene.`;
+  return null;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Yönetici paneli                                                    */
 /* ------------------------------------------------------------------ */
@@ -973,6 +1003,23 @@ export async function setAdmin(
   const supabase = await getSupabase();
   if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
   const { error } = await supabase.from('profiles').update({ is_admin: isAdmin }).eq('id', userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/');
+  return { ok: true };
+}
+
+
+export async function setModerator(
+  userId: string,
+  isMod: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me?.is_admin) return { ok: false, error: 'Yönetici yetkisi gerekli.' };
+  if (me.id === userId) return { ok: false, error: 'Kendine rol veremezsin.' };
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { error } = await supabase.from('profiles').update({ is_moderator: isMod }).eq('id', userId);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/');
   return { ok: true };
@@ -1029,6 +1076,31 @@ export async function adminListTopics(limit = 100): Promise<Topic[]> {
 }
 
 /** Yazarı veya admin kendi gönderisini düzenler */
+
+export async function adminListPosts(limit = 50) {
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('posts')
+    .select(
+      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ), topic:topics ( id, title )'
+    )
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    logErr('adminListPosts', error);
+    return [];
+  }
+  return (data ?? []) as unknown as {
+    id: string;
+    content: string;
+    created_at: string;
+    topic_id: string;
+    author: Profile | null;
+    topic: { id: string; title: string } | null;
+  }[];
+}
+
 export async function updatePost(
   postId: string,
   content: string
@@ -1042,7 +1114,7 @@ export async function updatePost(
     const db = await readDB();
     const p = db.posts.find((x) => x.id === postId);
     if (!p) return { ok: false, error: 'Mesaj bulunamadı.' };
-    if (p.author_id !== me.id && !me.is_admin)
+    if (p.author_id !== me.id && !me.is_admin && !me.is_moderator)
       return { ok: false, error: 'Yalnızca kendi mesajını düzenleyebilirsin.' };
     p.content = trimmed;
     p.updated_at = new Date().toISOString();
@@ -1055,7 +1127,7 @@ export async function updatePost(
   if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
   const { data: post } = await supabase.from('posts').select('author_id').eq('id', postId).maybeSingle();
   if (!post) return { ok: false, error: 'Mesaj bulunamadı.' };
-  if (post.author_id !== me.id && !me.is_admin)
+  if (post.author_id !== me.id && !me.is_admin && !me.is_moderator)
     return { ok: false, error: 'Yalnızca kendi mesajını düzenleyebilirsin.' };
   const { error } = await supabase
     .from('posts')
@@ -1082,7 +1154,7 @@ export async function updateTopic(
     const db = await readDB();
     const t = db.topics.find((x) => x.id === topicId);
     if (!t) return { ok: false, error: 'Konu bulunamadı.' };
-    if (t.author_id !== me.id && !me.is_admin)
+    if (t.author_id !== me.id && !me.is_admin && !me.is_moderator)
       return { ok: false, error: 'Yalnızca kendi konunu düzenleyebilirsin.' };
     t.title = title;
     t.content = content;
@@ -1096,7 +1168,7 @@ export async function updateTopic(
   if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
   const { data: topic } = await supabase.from('topics').select('author_id').eq('id', topicId).maybeSingle();
   if (!topic) return { ok: false, error: 'Konu bulunamadı.' };
-  if (topic.author_id !== me.id && !me.is_admin)
+  if (topic.author_id !== me.id && !me.is_admin && !me.is_moderator)
     return { ok: false, error: 'Yalnızca kendi konunu düzenleyebilirsin.' };
   const { error } = await supabase
     .from('topics')
@@ -1120,7 +1192,7 @@ export async function markSolution(
     const p = db.posts.find((x) => x.id === postId);
     if (!p) return { ok: false, error: 'Mesaj bulunamadı.' };
     const t = db.topics.find((x) => x.id === p.topic_id);
-    if (!t || (t.author_id !== me.id && !me.is_admin))
+    if (!t || (t.author_id !== me.id && !me.is_admin && !me.is_moderator))
       return { ok: false, error: 'Yalnızca konu sahibi çözümü işaretleyebilir.' };
     p.is_solution = isSolution;
     await writeDB(db);
@@ -1137,7 +1209,7 @@ export async function markSolution(
     .maybeSingle();
   const topicAuthor = (post as { topics?: { author_id: string } } | null)?.topics?.author_id;
   if (!post) return { ok: false, error: 'Mesaj bulunamadı.' };
-  if (topicAuthor !== me.id && !me.is_admin)
+  if (topicAuthor !== me.id && !me.is_admin && !me.is_moderator)
     return { ok: false, error: 'Yalnızca konu sahibi çözümü işaretleyebilir.' };
   const { error } = await supabase.from('posts').update({ is_solution: isSolution }).eq('id', postId);
   if (error) return { ok: false, error: error.message };
@@ -1307,7 +1379,7 @@ export async function listLatestPosts(limit = 6): Promise<LatestPost[]> {
   const { data, error } = await supabase
     .from('posts')
     .select(
-      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url ), topic:topics ( id, title, is_private )'
+      'id, content, created_at, topic_id, author:profiles!posts_author_id_fkey ( id, username, display_name, avatar_url, is_admin, is_moderator ), topic:topics ( id, title, is_private )'
     )
     .order('created_at', { ascending: false })
     .limit(limit * 3);

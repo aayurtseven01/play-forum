@@ -1048,3 +1048,8 @@ footer .f-wrap a:hover { color: var(--accent); }
 .cat-section .topic-list { border-top: 0; border-radius: 0 0 var(--r-lg) var(--r-lg); }
 .cat-empty { padding: 16px; border: 1px solid var(--border); border-top: 0; border-radius: 0 0 var(--r-lg) var(--r-lg); background: var(--surface); color: var(--muted); font-size: 13.5px; }
 .cat-all { display: inline-block; margin-top: 8px; font-size: 13px; font-weight: 700; color: var(--accent); }
+
+/* ---- Rol rozetleri ---- */
+.role-badge { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; letter-spacing: .3px; }
+.role-badge.admin { color: #fff; background: linear-gradient(135deg, #f59e0b, #e11d48); }
+.role-badge.mod { color: #fff; background: linear-gradient(135deg, #0ea5e9, #6366f1); }

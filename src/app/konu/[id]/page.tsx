@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import LikeButton from '@/components/like-button';
 import Composer from '@/components/composer';
+import RoleBadge from '@/components/role-badge';
 import ProgressBar from '@/components/progress-bar';
 import { QuoteButton, ShareButton } from '@/components/post-buttons';
 import { EditPostButton, EditTopicButton, MarkSolutionButton } from '@/components/edit-buttons';
@@ -125,6 +126,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
               ) : (
                 <b>{displayName(topic.author)}</b>
               )}
+              <RoleBadge profile={topic.author} />
               <span className="trust" data-level={trustOf(topic.author_id).level}>
                 <i /> {trustOf(topic.author_id).label}
               </span>
@@ -161,6 +163,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                 ) : (
                   <b>{displayName(p.author)}</b>
                 )}
+                <RoleBadge profile={p.author} />
                 <span className="trust" data-level={trustOf(p.author_id).level}>
                   <i /> {trustOf(p.author_id).label}
                 </span>

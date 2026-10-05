@@ -37,6 +37,7 @@ const seed = (): DemoDB => {
     bio: 'Demo modunda oluşturulmuş örnek kullanıcı.',
     avatar_url: null,
     is_admin: true,
+    is_moderator: false,
     created_at: new Date().toISOString()
   };
 

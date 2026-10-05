@@ -4,11 +4,14 @@ import UserAvatar from '@/components/avatar';
 import {
   createCategoryAction,
   deleteCategoryAction,
+  deletePostAction,
   deleteTopicAction,
   setAdminAction,
+  setModeratorAction,
   setTopicFlagsAction
 } from '@/lib/actions';
 import {
+  adminListPosts,
   adminListTopics,
   adminStats,
   displayName,
@@ -46,6 +49,17 @@ async function wrapSetAdmin(formData: FormData) {
   'use server';
   await setAdminAction(formData);
 }
+async function wrapSetMod(formData: FormData) {
+  'use server';
+  await setModeratorAction(formData);
+}
+async function wrapDelPost(formData: FormData) {
+  'use server';
+  await deletePostAction(
+    String(formData.get('id') ?? ''),
+    String(formData.get('topic_id') ?? '')
+  );
+}
 async function wrapDelCat(formData: FormData) {
   'use server';
   await deleteCategoryAction(formData);
@@ -56,11 +70,12 @@ export default async function AdminPage() {
   if (!user) redirect('/giris?next=/yonetim');
   if (!user.is_admin) redirect('/');
 
-  const [stats, members, topics, categories] = await Promise.all([
+  const [stats, members, topics, categories, posts] = await Promise.all([
     adminStats(),
     listMembers(200),
     adminListTopics(100),
-    listCategories()
+    listCategories(),
+    adminListPosts(50)
   ]);
 
   return (
@@ -119,16 +134,33 @@ export default async function AdminPage() {
                   </span>
                 </td>
                 <td style={{ fontSize: 13, color: 'var(--muted)' }}>{timeAgo(m.created_at)}</td>
-                <td>{m.is_admin ? <span className="badge-pill">Yönetici</span> : <span className="badge-pill">Üye</span>}</td>
+                <td>
+                  {m.is_admin ? (
+                    <span className="role-badge admin">Administrator</span>
+                  ) : m.is_moderator ? (
+                    <span className="role-badge mod">Moderatör</span>
+                  ) : (
+                    <span className="badge-pill">Üye</span>
+                  )}
+                </td>
                 <td className="num">
                   {m.id !== user.id && (
-                    <form action={wrapSetAdmin}>
-                      <input type="hidden" name="user_id" value={m.id} />
-                      <input type="hidden" name="is_admin" value={m.is_admin ? '0' : '1'} />
-                      <button className={`btn btn-sm ${m.is_admin ? '' : 'btn-primary'}`} type="submit">
-                        {m.is_admin ? 'Yetkiyi Al' : 'Admin Yap'}
-                      </button>
-                    </form>
+                    <span style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                      <form action={wrapSetAdmin}>
+                        <input type="hidden" name="user_id" value={m.id} />
+                        <input type="hidden" name="is_admin" value={m.is_admin ? '0' : '1'} />
+                        <button className={`btn btn-sm ${m.is_admin ? '' : 'btn-primary'}`} type="submit">
+                          {m.is_admin ? 'Adminliği Al' : 'Admin Yap'}
+                        </button>
+                      </form>
+                      <form action={wrapSetMod}>
+                        <input type="hidden" name="user_id" value={m.id} />
+                        <input type="hidden" name="is_moderator" value={m.is_moderator ? '0' : '1'} />
+                        <button className={`btn btn-sm ${m.is_moderator ? '' : 'btn-primary'}`} type="submit">
+                          {m.is_moderator ? 'Modluk Al' : 'Moderatör Yap'}
+                        </button>
+                      </form>
+                    </span>
                   )}
                 </td>
               </tr>
@@ -189,6 +221,54 @@ export default async function AdminPage() {
                       </button>
                     </form>
                   </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* MESAJLAR */}
+      <div className="side-title">Son Mesajlar (denetim)</div>
+      <div className="widget" style={{ marginBottom: 26, overflowX: 'auto' }}>
+        <table className="topic-list">
+          <thead>
+            <tr>
+              <th style={{ width: '22%' }}>Yazar</th>
+              <th>Mesaj / Konu</th>
+              <th className="num">Tarih</th>
+              <th className="num">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {posts.map((p) => (
+              <tr key={p.id}>
+                <td>
+                  <span className="topic-col-main">
+                    <UserAvatar profile={p.author} size={30} />
+                    <span className="topic-meta">{displayName(p.author)}</span>
+                  </span>
+                </td>
+                <td>
+                  <Link href={`/konu/${p.topic_id}`} className="topic-title" style={{ fontSize: 13.5 }}>
+                    {p.topic?.title ?? '(silinmiş konu)'}
+                  </Link>
+                  <span className="topic-meta" style={{ display: 'block', whiteSpace: 'normal' }}>
+                    {p.content.slice(0, 140)}
+                    {p.content.length > 140 ? '…' : ''}
+                  </span>
+                </td>
+                <td className="num" style={{ fontSize: 12.5, color: 'var(--muted)' }}>
+                  {timeAgo(p.created_at)}
+                </td>
+                <td className="num">
+                  <form action={wrapDelPost}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="topic_id" value={p.topic_id} />
+                    <button className="btn btn-sm btn-danger" type="submit">
+                      Sil
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}
