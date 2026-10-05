@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 type CookieSet = { name: string; value: string; options?: Record<string, unknown> };
 
-/** Giriş gerektiren sayfalar */
-const PROTECTED = ['/yeni-konu', '/ayarlar', '/bildirimler', '/mesajlar', '/mesaj', '/yonetim'];
+/** Giriş yapmadan görülebilen sayfalar — diğer HER SAYFA üye gerektirir */
+const PUBLIC = ['/giris', '/kayit', '/gizlilik'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -34,9 +34,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const needsAuth = PROTECTED.some((p) => path.startsWith(p));
+  const isPublic = PUBLIC.some((p) => path === p || path.startsWith(p + '/'));
 
-  if (needsAuth && !user) {
+  // Üye olmayan hiç bir içeriği göremez
+  if (!user && !isPublic) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = '/giris';
     redirect.searchParams.set('next', path);
