@@ -43,7 +43,9 @@ alter table public.topics
   add column if not exists participants uuid[]   not null default '{}';
 
 -- Konu okuma: herkese açık konular + kendi özel konuların
+-- (eski ve yeni politika adlarının hepsi önce silinir → tekrar tekrar çalıştırılabilir)
 drop policy if exists "topics: herkes okur" on public.topics;
+drop policy if exists "topics: görünür konular okunur" on public.topics;
 create policy "topics: görünür konular okunur" on public.topics
   for select using (
     not is_private
@@ -53,6 +55,7 @@ create policy "topics: görünür konular okunur" on public.topics
 
 -- Cevap okuma: konuyu görebilen cevabı görür
 drop policy if exists "posts: herkes okur" on public.posts;
+drop policy if exists "posts: görünür konunun cevapları okunur" on public.posts;
 create policy "posts: görünür konunun cevapları okunur" on public.posts
   for select using (
     exists (
@@ -64,6 +67,7 @@ create policy "posts: görünür konunun cevapları okunur" on public.posts
 
 -- Cevap yazma: ancak konuyu görebilen (özelde: katılımcı)
 drop policy if exists "posts: giriş yapan yazar" on public.posts;
+drop policy if exists "posts: görebilen yazar" on public.posts;
 create policy "posts: görebilen yazar" on public.posts
   for insert with check (
     auth.uid() = author_id
