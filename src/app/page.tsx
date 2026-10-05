@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import TopicList from '@/components/topic-list';
+import UserAvatar from '@/components/avatar';
 import {
   displayName,
   getCurrentUser,
-  initials,
   listCategories,
   listLatestPosts,
   listTopics,
@@ -112,9 +112,7 @@ export default async function HomePage({ searchParams }: Props) {
               ) : (
                 latest.map((p) => (
                   <Link key={p.id} href={`/konu/${p.topic_id}`} className="latest-row">
-                    <span className="avatar" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 9 }}>
-                      {initials(p.author)}
-                    </span>
+                    <UserAvatar profile={p.author} size={30} />
                     <span style={{ minWidth: 0 }}>
                       <span className="t">{p.topic_title}</span>
                       <span className="m">

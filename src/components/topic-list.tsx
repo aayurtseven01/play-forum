@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { displayName, initials, timeAgo } from '@/lib/data';
+import UserAvatar from '@/components/avatar';
+import { displayName, timeAgo } from '@/lib/data';
 import type { Topic } from '@/lib/types';
 
 export default function TopicList({ topics }: { topics: Topic[] }) {
@@ -24,7 +25,7 @@ export default function TopicList({ topics }: { topics: Topic[] }) {
             <tr key={t.id}>
               <td>
                 <div className="topic-col-main">
-                  <span className="avatar">{initials(t.author)}</span>
+                  <UserAvatar profile={t.author} />
                   <div>
                     <Link href={`/konu/${t.id}`} className="topic-title">
                       {t.is_pinned && '📌 '}
@@ -59,14 +60,7 @@ export default function TopicList({ topics }: { topics: Topic[] }) {
                   {(t.last_posters?.length ?? 0) > 0 && (
                     <span className="last-posters">
                       {t.last_posters!.map((p) => (
-                        <span
-                          key={p!.id}
-                          className="avatar"
-                          style={{ width: 24, height: 24, fontSize: 10 }}
-                          title={displayName(p)}
-                        >
-                          {initials(p)}
-                        </span>
+                        <UserAvatar key={p!.id} profile={p} size={24} />
                       ))}
                     </span>
                   )}

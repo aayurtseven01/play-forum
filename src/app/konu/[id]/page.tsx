@@ -6,6 +6,7 @@ import ProgressBar from '@/components/progress-bar';
 import { QuoteButton, ShareButton } from '@/components/post-buttons';
 import { renderContent } from '@/components/post-content';
 import DeleteButtons from '@/components/delete-buttons';
+import UserAvatar from '@/components/avatar';
 import { setTopicFlagsAction } from '@/lib/actions';
 import {
   countPostsByAuthor,
@@ -13,7 +14,6 @@ import {
   getReactionMap,
   getTopic,
   getCurrentUser,
-  initials,
   incrementViews,
   timeAgo,
   trustInfo
@@ -106,7 +106,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         {/* İlk mesaj */}
         <article className="post">
           <div className="post-avatar-col">
-            <span className="avatar lg">{initials(topic.author)}</span>
+            <UserAvatar profile={topic.author} className="avatar lg" size={46} />
             <span className="name">{displayName(topic.author)}</span>
           </div>
           <div className="post-body">
@@ -136,7 +136,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         {topic.posts.map((p) => (
           <article className="post" key={p.id}>
             <div className="post-avatar-col">
-              <span className="avatar lg">{initials(p.author)}</span>
+              <UserAvatar profile={p.author} className="avatar lg" size={46} />
               <span className="name">{displayName(p.author)}</span>
             </div>
             <div className="post-body">

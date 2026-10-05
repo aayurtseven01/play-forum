@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 type CookieSet = { name: string; value: string; options?: Record<string, unknown> };
 
 /** Giriş gerektiren sayfalar */
-const PROTECTED = ['/yeni-konu', '/ayarlar', '/bildirimler', '/mesajlar', '/mesaj'];
+const PROTECTED = ['/yeni-konu', '/ayarlar', '/bildirimler', '/mesajlar', '/mesaj', '/yonetim'];
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });

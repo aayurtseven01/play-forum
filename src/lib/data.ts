@@ -60,18 +60,8 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   };
 }
 
-type Nameable = {
-  username?: string | null;
-  display_name?: string | null;
-} | null | undefined;
-
-export function displayName(p: Nameable): string {
-  return p?.display_name || p?.username || 'Silinmiş kullanıcı';
-}
-
-export function initials(p: Nameable): string {
-  return displayName(p).slice(0, 2).toUpperCase();
-}
+import { displayName, type Nameable } from './format';
+export { displayName, initials, STOCK_AVATARS, type Nameable } from './format';
 
 /** Discourse benzeri güven seviyesi etiketi (mesaj sayısına göre) */
 export function trustInfo(postCount: number): { label: string; level: number } {
@@ -926,6 +916,7 @@ export async function countPostsByAuthor(authorId: string): Promise<number> {
 export async function updateProfile(input: {
   display_name?: string;
   bio?: string;
+  avatar_url?: string | null;
 }): Promise<{ ok: boolean; error?: string }> {
   if (isDemoEnv()) {
     const db = await readDB();
@@ -933,6 +924,7 @@ export async function updateProfile(input: {
     if (p) {
       if (input.display_name !== undefined) p.display_name = input.display_name.trim() || null;
       if (input.bio !== undefined) p.bio = input.bio.trim() || null;
+      if (input.avatar_url !== undefined) p.avatar_url = input.avatar_url;
     }
     await writeDB(db);
     revalidatePath('/');
@@ -946,13 +938,119 @@ export async function updateProfile(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: 'Giriş yapmalısın.' };
 
-  const { error } = await supabase
-    .from('profiles')
-    .update({
-      display_name: input.display_name?.trim() || null,
-      bio: input.bio?.trim() || null
-    })
-    .eq('id', user.id);
+  const patch: Record<string, unknown> = {};
+  if (input.display_name !== undefined) patch.display_name = input.display_name.trim() || null;
+  if (input.bio !== undefined) patch.bio = input.bio.trim() || null;
+  if (input.avatar_url !== undefined) patch.avatar_url = input.avatar_url;
+
+  const { error } = await supabase.from('profiles').update(patch).eq('id', user.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/');
+  return { ok: true };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Yönetici paneli                                                    */
+/* ------------------------------------------------------------------ */
+
+export async function setAdmin(
+  userId: string,
+  isAdmin: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me?.is_admin) return { ok: false, error: 'Yönetici yetkisi gerekli.' };
+  if (me.id === userId) return { ok: false, error: 'Kendi yetkini değiştiremezsin.' };
+
+  if (isDemoEnv()) {
+    const db = await readDB();
+    const p = db.profiles.find((x) => x.id === userId);
+    if (p) p.is_admin = isAdmin;
+    await writeDB(db);
+    revalidatePath('/');
+    return { ok: true };
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { error } = await supabase.from('profiles').update({ is_admin: isAdmin }).eq('id', userId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/');
+  return { ok: true };
+}
+
+export async function adminStats() {
+  if (isDemoEnv()) {
+    const db = await readDB();
+    return {
+      members: db.profiles.length,
+      topics: db.topics.length,
+      posts: db.posts.length,
+      categories: db.categories.length
+    };
+  }
+  const supabase = await getSupabase();
+  if (!supabase) return { members: 0, topics: 0, posts: 0, categories: 0 };
+  const [m, t, p, c] = await Promise.all([
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('topics').select('id', { count: 'exact', head: true }),
+    supabase.from('posts').select('id', { count: 'exact', head: true }),
+    supabase.from('categories').select('id', { count: 'exact', head: true })
+  ]);
+  return {
+    members: m.count ?? 0,
+    topics: t.count ?? 0,
+    posts: p.count ?? 0,
+    categories: c.count ?? 0
+  };
+}
+
+/** Yönetici: gizliler dahil tüm konular */
+export async function adminListTopics(limit = 100): Promise<Topic[]> {
+  if (isDemoEnv()) {
+    const db = await readDB();
+    return db.topics
+      .slice()
+      .sort((a, b) => b.created_at.localeCompare(a.created_at))
+      .slice(0, limit)
+      .map((t) => hydrateDemoTopic(db, t));
+  }
+  const supabase = await getSupabase();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('topics')
+    .select(TOPIC_SELECT)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) {
+    logErr('adminListTopics', error);
+    return [];
+  }
+  return ((data ?? []) as unknown as Topic[]).map(normalizeTopic);
+}
+
+export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me?.is_admin) return { ok: false, error: 'Yönetici yetkisi gerekli.' };
+
+  if (isDemoEnv()) {
+    const db = await readDB();
+    if (db.topics.some((t) => t.category_id === id))
+      return { ok: false, error: 'Bu kategoride konular var, önce onları taşı/sil.' };
+    db.categories = db.categories.filter((c) => c.id !== id);
+    await writeDB(db);
+    revalidatePath('/');
+    return { ok: true };
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { count } = await supabase
+    .from('topics')
+    .select('id', { count: 'exact', head: true })
+    .eq('category_id', id);
+  if ((count ?? 0) > 0)
+    return { ok: false, error: 'Bu kategoride konular var, önce onları taşı/sil.' };
+  const { error } = await supabase.from('categories').delete().eq('id', id);
   if (error) return { ok: false, error: error.message };
   revalidatePath('/');
   return { ok: true };

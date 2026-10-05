@@ -128,8 +128,65 @@ export async function createMessageAction(formData: FormData): Promise<ActionRes
 /* ---------------- Profil ---------------- */
 
 export async function updateProfileAction(formData: FormData): Promise<ActionResult> {
-  return await db.updateProfile({
+  const res = await db.updateProfile({
     display_name: String(formData.get('display_name') ?? ''),
     bio: String(formData.get('bio') ?? '')
   });
+  revalidatePath('/ayarlar');
+  return res;
+}
+
+/** Stok avatar seç */
+export async function pickStockAvatarAction(formData: FormData): Promise<ActionResult> {
+  const url = String(formData.get('avatar_url') ?? '');
+  if (!db.STOCK_AVATARS.includes(url)) return { ok: false, error: 'Geçersiz avatar.' };
+  const res = await db.updateProfile({ avatar_url: url });
+  revalidatePath('/ayarlar');
+  return res;
+}
+
+/** Kendi avatarını yükle (Supabase Storage) */
+export async function uploadAvatarAction(formData: FormData): Promise<ActionResult> {
+  const file = formData.get('avatar');
+  if (!(file instanceof File) || file.size === 0)
+    return { ok: false, error: 'Önce bir görsel seç.' };
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type))
+    return { ok: false, error: 'Yalnızca PNG, JPG veya WEBP yükleyebilirsin.' };
+  if (file.size > 512 * 1024)
+    return { ok: false, error: 'Görsel 512 KB’den küçük olmalı.' };
+
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: 'Giriş yapmalısın.' };
+
+  const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+  const path = `${user.id}/${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('avatars').upload(path, Buffer.from(await file.arrayBuffer()), {
+    contentType: file.type,
+    upsert: false
+  });
+  if (error) return { ok: false, error: `Yükleme hatası: ${error.message}` };
+
+  const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path);
+  const res = await db.updateProfile({ avatar_url: pub.publicUrl });
+  revalidatePath('/ayarlar');
+  return res;
+}
+
+export async function setAdminAction(formData: FormData): Promise<ActionResult> {
+  const res = await db.setAdmin(
+    String(formData.get('user_id') ?? ''),
+    formData.get('is_admin') === '1'
+  );
+  revalidatePath('/yonetim');
+  return res;
+}
+
+export async function deleteCategoryAction(formData: FormData): Promise<ActionResult> {
+  const res = await db.deleteCategory(String(formData.get('category_id') ?? ''));
+  revalidatePath('/yonetim');
+  return res;
 }

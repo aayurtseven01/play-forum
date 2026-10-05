@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import TopicList from '@/components/topic-list';
+import UserAvatar from '@/components/avatar';
 import {
   countPostsByAuthor,
   displayName,
   getCurrentUser,
   getProfileByUsername,
-  initials,
   listTopics,
   timeAgo,
   trustInfo
@@ -44,9 +44,7 @@ export default async function ProfilePage({
   return (
     <>
       <div className="card card-pad" style={{ marginTop: 22, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-        <span className="avatar lg" style={{ width: 72, height: 72, fontSize: 24 }}>
-          {initials(profile)}
-        </span>
+        <UserAvatar profile={profile} className="avatar lg" size={72} />
         <div style={{ flex: 1, minWidth: 220 }}>
           <h1 style={{ fontSize: 22, margin: 0 }}>
             {displayName(profile)}{' '}
