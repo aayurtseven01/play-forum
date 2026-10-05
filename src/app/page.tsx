@@ -5,6 +5,7 @@ import {
   displayName,
   getCurrentUser,
   listCategories,
+  latestMember,
   listLatestPosts,
   listTopics,
   siteStats,
@@ -26,12 +27,13 @@ export default async function HomePage({ searchParams }: Props) {
   const { sort } = await searchParams;
   const active = (SORTS.find((s) => s.id === sort)?.id ?? 'yeni') as TopicSort;
 
-  const [categories, topics, stats, user, latest] = await Promise.all([
+  const [categories, topics, stats, user, latest, newest] = await Promise.all([
     listCategories(),
     listTopics({ sort: active }),
     siteStats(),
     getCurrentUser(),
-    listLatestPosts(6)
+    listLatestPosts(6),
+    latestMember()
   ]);
 
   return (
@@ -141,6 +143,29 @@ export default async function HomePage({ searchParams }: Props) {
                   <b>{stats.replies}</b>
                   <span>cevap</span>
                 </div>
+              </div>
+              <div
+                style={{
+                  padding: '0 16px 14px',
+                  fontSize: 13,
+                  color: 'var(--muted)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  flexWrap: 'wrap'
+                }}
+              >
+                {newest?.username && (
+                  <span>
+                    En yeni üye:{' '}
+                    <Link href={`/profil/${newest.username}`} style={{ fontWeight: 700 }}>
+                      {displayName(newest)}
+                    </Link>
+                  </span>
+                )}
+                <Link href="/uyeler" style={{ fontWeight: 700 }}>
+                  Tüm üyeler →
+                </Link>
               </div>
             </div>
           </div>

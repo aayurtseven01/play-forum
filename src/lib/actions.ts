@@ -190,3 +190,52 @@ export async function deleteCategoryAction(formData: FormData): Promise<ActionRe
   revalidatePath('/yonetim');
   return res;
 }
+
+export async function editPostAction(formData: FormData): Promise<ActionResult> {
+  return await db.updatePost(
+    String(formData.get('post_id') ?? ''),
+    String(formData.get('content') ?? '')
+  );
+}
+
+export async function editTopicAction(formData: FormData): Promise<ActionResult> {
+  const res = await db.updateTopic(String(formData.get('topic_id') ?? ''), {
+    title: String(formData.get('title') ?? ''),
+    content: String(formData.get('content') ?? '')
+  });
+  if (res.ok) revalidatePath(`/konu/${String(formData.get('topic_id') ?? '')}`);
+  return res;
+}
+
+export async function markSolutionAction(formData: FormData): Promise<ActionResult> {
+  return await db.markSolution(
+    String(formData.get('post_id') ?? ''),
+    formData.get('v') === '1'
+  );
+}
+
+/** Şifremi unuttum: sıfırlama e-postası gönder */
+export async function resetPasswordAction(formData: FormData): Promise<ActionResult> {
+  const email = String(formData.get('email') ?? '').trim();
+  if (!email) return { ok: false, error: 'E-posta gerekli.' };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://play-forum.vercel.app'}/ayarlar`
+  });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+/** Giriş yapmış kullanıcı şifresini değiştirir */
+export async function changePasswordAction(formData: FormData): Promise<ActionResult> {
+  const pass = String(formData.get('password') ?? '');
+  const pass2 = String(formData.get('password2') ?? '');
+  if (pass.length < 6) return { ok: false, error: 'Şifre en az 6 karakter olmalı.' };
+  if (pass !== pass2) return { ok: false, error: 'Şifreler eşleşmiyor.' };
+  const supabase = await createClient();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { error } = await supabase.auth.updateUser({ password: pass });
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}

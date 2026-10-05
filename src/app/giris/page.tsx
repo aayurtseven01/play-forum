@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { SignInForm } from '@/components/auth-form';
 import { isDemoEnv } from '@/lib/data';
 
@@ -10,5 +11,14 @@ export default async function LoginPage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const { next } = await searchParams;
-  return <SignInForm next={next} demo={isDemoEnv()} />;
+  return (
+    <>
+      <SignInForm next={next} demo={isDemoEnv()} />
+      <p style={{ textAlign: 'center', marginTop: 14 }}>
+        <Link href="/sifre" style={{ fontSize: 13.5, color: 'var(--muted)' }}>
+          Şifremi unuttum
+        </Link>
+      </p>
+    </>
+  );
 }

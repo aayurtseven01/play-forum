@@ -4,6 +4,7 @@ import LikeButton from '@/components/like-button';
 import Composer from '@/components/composer';
 import ProgressBar from '@/components/progress-bar';
 import { QuoteButton, ShareButton } from '@/components/post-buttons';
+import { EditPostButton, EditTopicButton, MarkSolutionButton } from '@/components/edit-buttons';
 import { renderContent } from '@/components/post-content';
 import DeleteButtons from '@/components/delete-buttons';
 import UserAvatar from '@/components/avatar';
@@ -40,6 +41,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
   });
 
   const canModerate = Boolean(user && (user.is_admin || user.id === topic.author_id));
+  const canEditTopic = Boolean(user && (user.is_admin || user.id === topic.author_id));
   const siteUrl = `https://play-forum.vercel.app/konu/${topic.id}`;
 
   // güven seviyesi: yazarların toplam mesaj sayısına göre
@@ -84,6 +86,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           <span>·</span>
           <span>{timeAgo(topic.created_at)} başladı</span>
         </div>
+        {canEditTopic && (
+          <div style={{ marginTop: 12 }}>
+            <EditTopicButton topicId={topic.id} title={topic.title} content={topic.content} />
+          </div>
+        )}
       </div>
 
       {canModerate && (
@@ -111,7 +118,13 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           </div>
           <div className="post-body">
             <div className="post-head">
-              <b>{displayName(topic.author)}</b>
+              {topic.author?.username ? (
+                <Link href={`/profil/${topic.author.username}`}>
+                  <b>{displayName(topic.author)}</b>
+                </Link>
+              ) : (
+                <b>{displayName(topic.author)}</b>
+              )}
               <span className="trust" data-level={trustOf(topic.author_id).level}>
                 <i /> {trustOf(topic.author_id).label}
               </span>
@@ -141,7 +154,13 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
             </div>
             <div className="post-body">
               <div className="post-head">
-                <b>{displayName(p.author)}</b>
+                {p.author?.username ? (
+                  <Link href={`/profil/${p.author.username}`}>
+                    <b>{displayName(p.author)}</b>
+                  </Link>
+                ) : (
+                  <b>{displayName(p.author)}</b>
+                )}
                 <span className="trust" data-level={trustOf(p.author_id).level}>
                   <i /> {trustOf(p.author_id).label}
                 </span>
@@ -160,6 +179,10 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                 />
                 {user && <QuoteButton author={displayName(p.author)} text={p.content} />}
                 <ShareButton url={`${siteUrl}?u=${p.id.slice(0, 8)}`} />
+                {user && (user.is_admin || user.id === p.author_id) && (
+                  <EditPostButton postId={p.id} initial={p.content} />
+                )}
+                {canEditTopic && <MarkSolutionButton postId={p.id} isSolution={Boolean(p.is_solution)} />}
                 {user && (user.is_admin || user.id === p.author_id) && (
                   <DeleteButtons postId={p.id} topicId={topic.id} />
                 )}

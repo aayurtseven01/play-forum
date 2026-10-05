@@ -1028,6 +1028,164 @@ export async function adminListTopics(limit = 100): Promise<Topic[]> {
   return ((data ?? []) as unknown as Topic[]).map(normalizeTopic);
 }
 
+/** Yazarı veya admin kendi gönderisini düzenler */
+export async function updatePost(
+  postId: string,
+  content: string
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, error: 'Giriş yapmalısın.' };
+  const trimmed = content.trim();
+  if (trimmed.length < 2) return { ok: false, error: 'Mesaj çok kısa.' };
+
+  if (isDemoEnv()) {
+    const db = await readDB();
+    const p = db.posts.find((x) => x.id === postId);
+    if (!p) return { ok: false, error: 'Mesaj bulunamadı.' };
+    if (p.author_id !== me.id && !me.is_admin)
+      return { ok: false, error: 'Yalnızca kendi mesajını düzenleyebilirsin.' };
+    p.content = trimmed;
+    p.updated_at = new Date().toISOString();
+    await writeDB(db);
+    revalidatePath('/');
+    return { ok: true };
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { data: post } = await supabase.from('posts').select('author_id').eq('id', postId).maybeSingle();
+  if (!post) return { ok: false, error: 'Mesaj bulunamadı.' };
+  if (post.author_id !== me.id && !me.is_admin)
+    return { ok: false, error: 'Yalnızca kendi mesajını düzenleyebilirsin.' };
+  const { error } = await supabase
+    .from('posts')
+    .update({ content: trimmed, updated_at: new Date().toISOString() })
+    .eq('id', postId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/');
+  return { ok: true };
+}
+
+/** Yazarı veya admin konuyu düzenler */
+export async function updateTopic(
+  topicId: string,
+  input: { title: string; content: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, error: 'Giriş yapmalısın.' };
+  const title = input.title.trim();
+  const content = input.content.trim();
+  if (title.length < 2) return { ok: false, error: 'Başlık çok kısa.' };
+  if (content.length < 2) return { ok: false, error: 'İçerik çok kısa.' };
+
+  if (isDemoEnv()) {
+    const db = await readDB();
+    const t = db.topics.find((x) => x.id === topicId);
+    if (!t) return { ok: false, error: 'Konu bulunamadı.' };
+    if (t.author_id !== me.id && !me.is_admin)
+      return { ok: false, error: 'Yalnızca kendi konunu düzenleyebilirsin.' };
+    t.title = title;
+    t.content = content;
+    t.updated_at = new Date().toISOString();
+    await writeDB(db);
+    revalidatePath('/');
+    return { ok: true };
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { data: topic } = await supabase.from('topics').select('author_id').eq('id', topicId).maybeSingle();
+  if (!topic) return { ok: false, error: 'Konu bulunamadı.' };
+  if (topic.author_id !== me.id && !me.is_admin)
+    return { ok: false, error: 'Yalnızca kendi konunu düzenleyebilirsin.' };
+  const { error } = await supabase
+    .from('topics')
+    .update({ title, content, updated_at: new Date().toISOString() })
+    .eq('id', topicId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/');
+  return { ok: true };
+}
+
+/** Konu sahibi veya admin cevabı çözüm olarak işaretler */
+export async function markSolution(
+  postId: string,
+  isSolution: boolean
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, error: 'Giriş yapmalısın.' };
+
+  if (isDemoEnv()) {
+    const db = await readDB();
+    const p = db.posts.find((x) => x.id === postId);
+    if (!p) return { ok: false, error: 'Mesaj bulunamadı.' };
+    const t = db.topics.find((x) => x.id === p.topic_id);
+    if (!t || (t.author_id !== me.id && !me.is_admin))
+      return { ok: false, error: 'Yalnızca konu sahibi çözümü işaretleyebilir.' };
+    p.is_solution = isSolution;
+    await writeDB(db);
+    revalidatePath('/');
+    return { ok: true };
+  }
+
+  const supabase = await getSupabase();
+  if (!supabase) return { ok: false, error: 'Supabase bağlantısı yok.' };
+  const { data: post } = await supabase
+    .from('posts')
+    .select('topic_id, topics ( author_id )')
+    .eq('id', postId)
+    .maybeSingle();
+  const topicAuthor = (post as { topics?: { author_id: string } } | null)?.topics?.author_id;
+  if (!post) return { ok: false, error: 'Mesaj bulunamadı.' };
+  if (topicAuthor !== me.id && !me.is_admin)
+    return { ok: false, error: 'Yalnızca konu sahibi çözümü işaretleyebilir.' };
+  const { error } = await supabase.from('posts').update({ is_solution: isSolution }).eq('id', postId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/');
+  return { ok: true };
+}
+
+/** Üye başına mesaj sayısı (üye listesi için tek sorgu) */
+export async function memberPostCounts(): Promise<Record<string, number>> {
+  if (isDemoEnv()) {
+    const db = await readDB();
+    const out: Record<string, number> = {};
+    db.posts.forEach((p) => {
+      out[p.author_id] = (out[p.author_id] ?? 0) + 1;
+    });
+    return out;
+  }
+  const supabase = await getSupabase();
+  if (!supabase) return {};
+  const { data, error } = await supabase.from('posts').select('author_id').limit(10000);
+  if (error) {
+    logErr('memberPostCounts', error);
+    return {};
+  }
+  const out: Record<string, number> = {};
+  (data ?? []).forEach((r: { author_id: string }) => {
+    out[r.author_id] = (out[r.author_id] ?? 0) + 1;
+  });
+  return out;
+}
+
+/** En yeni üye (ana sayfa widget'ı) */
+export async function latestMember(): Promise<Profile | null> {
+  if (isDemoEnv()) {
+    const db = await readDB();
+    return db.profiles.slice().sort((a, b) => b.created_at.localeCompare(a.created_at))[0] ?? null;
+  }
+  const supabase = await getSupabase();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('profiles')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as Profile) ?? null;
+}
+
 export async function deleteCategory(id: string): Promise<{ ok: boolean; error?: string }> {
   const me = await getCurrentUser();
   if (!me?.is_admin) return { ok: false, error: 'Yönetici yetkisi gerekli.' };
